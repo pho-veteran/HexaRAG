@@ -5,9 +5,9 @@ This file tracks high-level execution across the split implementation plans. Run
 ## Execution Order
 
 ### Phase 1 — Foundation and First Vertical Slice
-- [ ] Read `docs/superpowers/plans/2026-05-06-hexarag-foundation.md`
-- [ ] Complete Docker Compose workspace scaffolding
-- [ ] Document the container-only local workflow
+- [x] Read `docs/superpowers/plans/2026-05-06-hexarag-foundation.md`
+- [x] Complete Docker Compose workspace scaffolding
+- [x] Document the container-only local workflow
 - [ ] Build the frontend shell with the persistent observability panel
 - [ ] Build the FastAPI skeleton and stubbed chat contract
 - [ ] Connect the frontend to the backend chat contract

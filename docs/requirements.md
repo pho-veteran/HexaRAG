@@ -192,7 +192,7 @@ The system must support the W4 tool categories through AWS-first integrations or
 - The synchronization path should be schedule-driven rather than event-driven.
 
 ### FR11. Testing support
-- Requirements must assume that the app will be validated against the W4 question sets under `xbrain-learners/W4/questions/student/`.
+- Requirements must assume that the app will be validated against the W4 question sets under `W4/questions/student/`.
 - The app should be testable against L1, L2, L3, and L4 scripts/questions.
 - The product design should not block future validation against the L5 investigation prompts.
 

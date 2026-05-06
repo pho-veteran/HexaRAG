@@ -1,0 +1,17 @@
+node_modules/
+dist/
+coverage/
+.venv/
+__pycache__/
+.pytest_cache/
+*.pyc
+.env
+.env.*
+!.env.example
+.terraform/
+terraform.tfstate*
+*.tfvars
+.DS_Store
+frontend/node_modules/
+frontend/dist/
+backend/.venv/

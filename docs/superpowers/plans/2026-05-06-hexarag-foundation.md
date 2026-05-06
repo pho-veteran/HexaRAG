@@ -136,13 +136,13 @@ services:
     working_dir: /app
     volumes:
       - ./backend:/app
-      - ./xbrain-learners:/workspace/xbrain-learners:ro
+      - ./W4:/workspace/W4:ro
     ports:
       - "8000:8000"
     environment:
       DATABASE_URL: postgresql://hexarag:hexarag@postgres:5432/hexarag
       MONITORING_BASE_URL: http://backend:8001
-      W4_DATA_ROOT: /workspace/xbrain-learners/W4/data_package
+      W4_DATA_ROOT: /workspace/W4/data_package
     depends_on:
       - postgres
 
@@ -152,8 +152,6 @@ services:
       POSTGRES_DB: hexarag
       POSTGRES_USER: hexarag
       POSTGRES_PASSWORD: hexarag
-    ports:
-      - "5432:5432"
     volumes:
       - postgres-data:/var/lib/postgresql/data
 
