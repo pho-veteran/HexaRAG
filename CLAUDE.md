@@ -37,6 +37,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
   - testing plan: evaluator + regressions + final verification
 - Do not collapse everything back into one monolithic plan.
 - Do not add a host-installed Node/Python/Postgres workflow alongside Docker Compose.
+- Do not create git worktrees for this repository. Use subagents while working directly on `master`.
+- This no-worktree rule applies to subagents too: do not request worktree isolation and do not create worktrees manually while executing repo tasks.
+- Before declaring a task done, clean up accidental or task-scoped artifacts created during execution. At minimum remove any stray git worktrees and stop/remove temporary Docker containers or images created only for that task or by subagent misuse.
+- Do not delete normal project Docker Compose resources that are part of the intended local workflow, especially long-lived images, running services, or named volumes, unless the user explicitly asks for that cleanup.
 
 ## Documentation and tracking rule
 

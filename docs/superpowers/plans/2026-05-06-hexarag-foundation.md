@@ -24,9 +24,10 @@
 - Create: `frontend/vite.config.ts` — Vite and Vitest config.
 - Create: `frontend/tsconfig.json` — TypeScript configuration.
 - Create: `frontend/.env.example` — `VITE_API_BASE_URL` and frontend env docs.
+- Modify: `frontend/tsconfig.app.json` — app build type configuration, including Vitest globals for test files under `src`.
 - Modify: `frontend/src/App.tsx` — top-level app shell.
 - Modify: `frontend/src/main.tsx` — React entrypoint setup.
-- Modify: `frontend/src/styles.css` — base layout and component styles.
+- Create: `frontend/src/styles.css` — base layout and component styles.
 - Create: `frontend/src/types/chat.ts` — request, response, and trace types.
 - Create: `frontend/src/lib/api.ts` — HTTP client for the backend API.
 - Create: `frontend/src/features/chat/useChatSession.ts` — chat session state and send-message flow.
@@ -266,6 +267,8 @@ git commit -m "docs: add docker compose local workflow"
 ### Task 3: Build the frontend shell with a persistent observability panel
 
 **Files:**
+- Modify: `frontend/package.json`
+- Modify: `frontend/tsconfig.app.json`
 - Create: `frontend/src/types/chat.ts`
 - Create: `frontend/src/features/chat/ChatPage.tsx`
 - Create: `frontend/src/features/chat/ChatPage.test.tsx`
@@ -273,7 +276,7 @@ git commit -m "docs: add docker compose local workflow"
 - Create: `frontend/src/features/trace/TracePanel.test.tsx`
 - Modify: `frontend/src/App.tsx`
 - Modify: `frontend/src/main.tsx`
-- Modify: `frontend/src/styles.css`
+- Create: `frontend/src/styles.css`
 - Create: `frontend/src/test/setup.ts`
 
 - [ ] **Step 1: Write the failing frontend layout tests**
@@ -623,6 +626,8 @@ docker compose run --rm backend uv run pytest tests/test_health.py tests/api/tes
 
 Expected: PASS.
 
+Execution note: The approved backend chat endpoint for this vertical slice is `POST /chat`, not `/api/chat`. See `docs/superpowers/plans/2026-05-07-phase1-vertical-slice-implementation.md` for the Phase 1 implementation decision and alignment details.
+
 - [ ] **Step 5: Commit the backend skeleton**
 
 ```bash
@@ -750,6 +755,8 @@ docker compose run --rm frontend npm run build
 ```
 
 Expected: PASS.
+
+Execution note: The approved Phase 1 UI is a single-turn form plus latest-result panel, not a transcript. Failed requests keep the form enabled, switch the latest-result area into an error state, and surface the request and error details in the observability panel.
 
 - [ ] **Step 5: Commit the first vertical slice**
 

@@ -1,7 +1,7 @@
 [project]
-name = "backend"
+name = "hexarag-api"
 version = "0.1.0"
-description = "Add your description here"
+description = "HexaRAG FastAPI backend"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
@@ -13,9 +13,6 @@ dependencies = [
     "pydantic-settings>=2.14.0",
     "python-dotenv>=1.2.2",
 ]
-
-[project.scripts]
-backend = "backend:main"
 
 [build-system]
 requires = ["uv_build>=0.9.30,<0.10.0"]

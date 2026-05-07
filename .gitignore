@@ -15,3 +15,5 @@ terraform.tfstate*
 frontend/node_modules/
 frontend/dist/
 backend/.venv/
+.claude/worktrees/
+.superpowers/

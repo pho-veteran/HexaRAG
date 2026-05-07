@@ -8,9 +8,9 @@ This file tracks high-level execution across the split implementation plans. Run
 - [x] Read `docs/superpowers/plans/2026-05-06-hexarag-foundation.md`
 - [x] Complete Docker Compose workspace scaffolding
 - [x] Document the container-only local workflow
-- [ ] Build the frontend shell with the persistent observability panel
-- [ ] Build the FastAPI skeleton and stubbed chat contract
-- [ ] Connect the frontend to the backend chat contract
+- [x] Build the frontend shell with the persistent observability panel
+- [x] Build the FastAPI skeleton and stubbed chat contract
+- [x] Connect the frontend to the backend chat contract
 
 ### Phase 2 — Core Runtime and W4 Data Integration
 - [ ] Read `docs/superpowers/plans/2026-05-06-hexarag-core-runtime.md`
