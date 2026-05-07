@@ -78,7 +78,7 @@ def load_level_questions(path: Path) -> dict:
 
 def evaluate_question(api_base_url: str, session_id: str, prompt: str) -> dict:
     response = requests.post(
-        f'{api_base_url}/api/chat',
+        f'{api_base_url}/chat',
         json={'session_id': session_id, 'message': prompt},
         timeout=30,
     )
@@ -169,7 +169,7 @@ git commit -m "test: add w4 evaluation harness and docker verification"
 
 Use these names consistently across evaluator and tests:
 - `session_id`
-- `/api/chat`
+- `/chat`
 - `--api-base-url`
 - `--level`
 - `--limit`

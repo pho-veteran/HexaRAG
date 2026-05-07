@@ -325,7 +325,7 @@ Update `backend/src/hexarag_api/api/chat.py` so it:
 Use this route shape:
 
 ```python
-@router.post('', response_model=ChatResponse)
+@router.post('/chat', response_model=ChatResponse)
 async def chat(request: ChatRequest) -> ChatResponse:
     memory_window = session_store.load_recent_turns(request.session_id)
     runtime_output = agent_runtime.answer(request.session_id, request.message, memory_window)
@@ -341,7 +341,7 @@ Add this assertion to `backend/tests/api/test_chat_contract.py` after wiring dep
 
 ```python
 def test_chat_returns_grounded_failure_when_runtime_errors(client, failing_agent_runtime):
-    response = client.post('/api/chat', json={'session_id': 's-1', 'message': 'What is NotificationSvc status?'})
+    response = client.post('/chat', json={'session_id': 's-1', 'message': 'What is NotificationSvc status?'})
     assert response.status_code == 200
     assert 'could not complete the live tool step' in response.json()['message']['content'].lower()
 ```

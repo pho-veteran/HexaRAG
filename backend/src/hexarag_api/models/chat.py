@@ -19,12 +19,19 @@ class ToolCallTrace(BaseModel):
     output: dict[str, Any] | None
 
 
+class ConflictResolution(BaseModel):
+    chosen_source: str
+    rationale: str
+    competing_sources: list[str] = Field(default_factory=list)
+
+
 class TracePayload(BaseModel):
     citations: list[Citation] = Field(default_factory=list)
     tool_calls: list[ToolCallTrace] = Field(default_factory=list)
     memory_window: list[str] = Field(default_factory=list)
     grounding_notes: list[str] = Field(default_factory=list)
     uncertainty: str | None = None
+    conflict_resolution: ConflictResolution | None = None
 
 
 class ChatRequest(BaseModel):

@@ -13,9 +13,9 @@ This file tracks high-level execution across the split implementation plans. Run
 - [x] Connect the frontend to the backend chat contract
 
 ### Phase 2 — Core Runtime and W4 Data Integration
-- [ ] Read `docs/superpowers/plans/2026-05-06-hexarag-core-runtime.md`
-- [ ] Implement the structured-data and monitoring services that mirror the W4 package
-- [ ] Implement AgentCore orchestration, recent-turn memory, and trace formatting
+- [x] Read `docs/superpowers/plans/2026-05-06-hexarag-core-runtime.md`
+- [x] Implement the structured-data and monitoring services that mirror the W4 package
+- [x] Implement AgentCore orchestration, recent-turn memory, and trace formatting
 
 ### Phase 3 — AWS Infrastructure and KB Sync
 - [ ] Read `docs/superpowers/plans/2026-05-06-hexarag-infra.md`

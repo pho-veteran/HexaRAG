@@ -511,7 +511,7 @@ client = TestClient(app)
 
 
 def test_chat_returns_message_and_trace_payload():
-    response = client.post('/api/chat', json={'session_id': 's-1', 'message': 'What is PaymentGW latency?'})
+    response = client.post('/chat', json={'session_id': 's-1', 'message': 'What is PaymentGW latency?'})
 
     assert response.status_code == 200
     payload = response.json()
@@ -569,10 +569,10 @@ Create `backend/src/hexarag_api/api/chat.py`:
 from fastapi import APIRouter
 from hexarag_api.models.chat import ChatRequest, ChatResponse, ChatMessage, TracePayload
 
-router = APIRouter(prefix='/api/chat', tags=['chat'])
+router = APIRouter(tags=['chat'])
 
 
-@router.post('', response_model=ChatResponse)
+@router.post('/chat', response_model=ChatResponse)
 async def chat(request: ChatRequest) -> ChatResponse:
     return ChatResponse(
         session_id=request.session_id,
@@ -707,7 +707,7 @@ Create `frontend/src/lib/api.ts`:
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8000'
 
 export async function postChatMessage(sessionId: string, message: string) {
-  const response = await fetch(`${API_BASE_URL}/api/chat`, {
+  const response = await fetch(`${API_BASE_URL}/chat`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ session_id: sessionId, message }),
