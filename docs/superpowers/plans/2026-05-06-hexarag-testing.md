@@ -4,149 +4,111 @@
 
 **Goal:** Add W4 evaluation automation, degraded-mode regression coverage, and the final Docker Compose verification suite for HexaRAG.
 
-**Architecture:** Keep evaluation separate from product logic by adding a dedicated root-level evaluator script plus targeted regression tests in frontend and backend suites. The final phase validates that the app can be exercised through the same Docker Compose workflow that local development, testing, and evidence capture will use.
+**Architecture:** Keep evaluation separate from product logic by adding a dedicated backend evaluator script plus targeted regression tests in frontend and backend suites. The final phase validates that the app can be exercised through the same Docker Compose workflow that local development, testing, and evidence capture will use.
 
-**Tech Stack:** Python, requests, pytest, Vitest, React Testing Library, Docker Compose.
+**Tech Stack:** Python, httpx, pytest, Vitest, React Testing Library, Docker Compose.
 
 ---
 
 ## Planned File Structure
 
-### Root
-- Create: `scripts/evaluate_w4.py` — replay W4 L1-L4 questions against the deployed API.
-
 ### Backend (`backend/`)
+- Create: `backend/scripts/evaluate_w4.py` — replay W4 L1-L4 prompts against the `/chat` API.
 - Create: `backend/tests/services/test_evaluator_inputs.py` — evaluator input-loading test.
 - Modify: `backend/tests/api/test_chat_contract.py` — keep graceful-failure path coverage green.
 
 ### Frontend (`frontend/`)
-- Modify: `frontend/src/features/chat/ChatPage.test.tsx` — sending-state regression coverage.
+- Modify: `frontend/src/features/chat/ChatPage.test.tsx` — sending-state and degraded-success regression coverage.
+- Modify: `frontend/src/features/trace/TracePanel.test.tsx` — degraded trace rendering coverage.
 
 ### Docs
 - Modify: `docs/local-dev.md` — evaluator and verification commands.
+- Modify: `CLAUDE.md` — evaluator command reference.
+- Modify: `TASKS.md` and `docs/superpowers/plans/2026-05-06-hexarag-v1.md` — Phase 4 progress tracking.
 
 ---
 
 ### Task 1: Add W4 evaluation automation and final verification
 
 **Files:**
-- Create: `scripts/evaluate_w4.py`
+- Create: `backend/scripts/evaluate_w4.py`
 - Create: `backend/tests/services/test_evaluator_inputs.py`
 - Modify: `backend/tests/api/test_chat_contract.py`
 - Modify: `frontend/src/features/chat/ChatPage.test.tsx`
+- Modify: `frontend/src/features/trace/TracePanel.test.tsx`
 - Modify: `docs/local-dev.md`
+- Modify: `CLAUDE.md`
 
-- [ ] **Step 1: Write a failing evaluator unit test**
+- [x] **Step 1: Add evaluator input coverage**
 
-Create `backend/tests/services/test_evaluator_inputs.py`:
-
-```python
-from pathlib import Path
-from evaluate_w4 import load_level_questions
-
-
-def test_load_level_questions_reads_l1_fixture():
-    fixture = Path('../xbrain-learners/W4/questions/student/L1_questions.json')
-    payload = load_level_questions(fixture)
-    assert payload['level'] == 1
-    assert len(payload['questions']) >= 1
-```
-
-- [ ] **Step 2: Run the evaluator test to verify it fails**
+Added `backend/tests/services/test_evaluator_inputs.py` to lock down:
+- level-to-file resolution for the W4 student fixtures
+- L1 payload loading
+- helper behavior for `--limit`
 
 Run from `hexarag`:
 
 ```bash
-docker compose run --rm backend uv run pytest backend/tests/services/test_evaluator_inputs.py -q
+docker compose run --rm backend uv run pytest tests/services/test_evaluator_inputs.py -q
 ```
 
-Expected: FAIL because `scripts/evaluate_w4.py` does not exist.
+- [x] **Step 2: Implement the evaluation harness**
 
-- [ ] **Step 3: Implement the evaluation harness**
-
-Create `scripts/evaluate_w4.py`:
-
-```python
-import json
-from pathlib import Path
-import requests
-
-
-def load_level_questions(path: Path) -> dict:
-    return json.loads(path.read_text(encoding='utf-8'))
-
-
-def evaluate_question(api_base_url: str, session_id: str, prompt: str) -> dict:
-    response = requests.post(
-        f'{api_base_url}/chat',
-        json={'session_id': session_id, 'message': prompt},
-        timeout=30,
-    )
-    response.raise_for_status()
-    return response.json()
-```
-
-Add CLI flags:
+Created `backend/scripts/evaluate_w4.py` with:
+- `httpx`-based `/chat` requests
 - `--api-base-url`
 - `--level l1|l2|l3|l4`
 - `--limit`
 - `--output`
+- `--questions-root`
 
-- [ ] **Step 4: Add final UI and API regression tests for degraded behavior**
+The script resolves fixtures from the mounted W4 tree and supports both single-turn (`l1`-`l3`) and multi-turn (`l4`) evaluation flows.
 
-Extend `frontend/src/features/chat/ChatPage.test.tsx` with:
+- [x] **Step 3: Extend degraded-mode regression coverage**
 
-```tsx
-it('shows a sending state while waiting for the backend', async () => {
-  let resolveFetch: (value: Response) => void
-  vi.spyOn(global, 'fetch').mockReturnValue(new Promise((resolve) => {
-    resolveFetch = resolve
-  }) as Promise<Response>)
+Updated `backend/tests/api/test_chat_contract.py` to assert the degraded trace shape and session-memory behavior.
 
-  render(<ChatPage />)
-  fireEvent.change(screen.getByPlaceholderText('Ask GeekBrain anything...'), { target: { value: 'Check PaymentGW SLA' } })
-  fireEvent.click(screen.getByRole('button', { name: 'Send' }))
+Updated `frontend/src/features/chat/ChatPage.test.tsx` to cover:
+- the `Sending...` pending state
+- degraded-success rendering without switching into hard-failure UI
 
-  expect(screen.getByText('Thinking...')).toBeInTheDocument()
+Updated `frontend/src/features/trace/TracePanel.test.tsx` to pin degraded trace rendering.
 
-  resolveFetch!({
-    ok: true,
-    json: async () => ({ session_id: 's-1', message: { role: 'assistant', content: 'done', trace: { citations: [], toolCalls: [], memoryWindow: [], groundingNotes: [] } } }),
-  } as Response)
-})
-```
-
-Also keep the backend failure-path test from the runtime plan green.
-
-Update `docs/local-dev.md` to include:
-
-```md
-- `docker compose run --rm frontend npm run test -- --run`
-- `docker compose run --rm backend uv run pytest -q`
-- `docker compose run --rm backend uv run python /workspace/scripts/evaluate_w4.py --api-base-url http://backend:8000 --level l1 --limit 3`
-```
-
-- [ ] **Step 5: Run the full verification suite**
+- [x] **Step 4: Run the final verification suite**
 
 Run from `hexarag`:
 
 ```bash
-docker compose run --rm frontend npm run test -- --run
+docker compose up -d --build backend postgres
+docker compose run --rm backend uv run pytest tests/api/test_chat_contract.py tests/services/test_trace_formatter.py tests/services/test_evaluator_inputs.py -q
+docker compose run --rm frontend npm run test -- src/features/chat/ChatPage.test.tsx src/features/trace/TracePanel.test.tsx --run
 docker compose run --rm frontend npm run build
 docker compose run --rm backend uv run pytest -q
-docker compose run --rm backend uv run python /workspace/scripts/evaluate_w4.py --api-base-url http://backend:8000 --level l1 --limit 3
+docker compose exec backend uv run python scripts/evaluate_w4.py --api-base-url http://backend:8000 --level l1 --limit 3
+docker compose down
 ```
 
 Expected:
-- frontend tests PASS
+- targeted backend tests PASS
+- targeted frontend tests PASS
 - frontend build succeeds
-- backend tests PASS
+- full backend tests PASS
 - evaluator prints per-question results without crashing
+- runtime services shut down cleanly after verification
+
+- [ ] **Step 5: Update trackers after verification**
+
+After the verification commands pass, mark Phase 4 complete in:
+- `TASKS.md`
+- `docs/superpowers/plans/2026-05-06-hexarag-v1.md`
+- this plan file
+
+Keep the Docker Compose-only workflow and the container-valid evaluator command aligned across docs.
 
 - [ ] **Step 6: Commit the evaluation tooling**
 
 ```bash
-git add scripts backend/tests frontend/src/features/chat/ChatPage.test.tsx docs/local-dev.md
+git add backend/scripts/evaluate_w4.py backend/tests frontend/src/features/chat/ChatPage.test.tsx frontend/src/features/trace/TracePanel.test.tsx docs/local-dev.md docs/superpowers/plans/2026-05-06-hexarag-testing.md docs/superpowers/plans/2026-05-06-hexarag-v1.md TASKS.md CLAUDE.md
 git commit -m "test: add w4 evaluation harness and docker verification"
 ```
 

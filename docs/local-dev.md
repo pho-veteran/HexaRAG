@@ -27,7 +27,10 @@
 - from `infra/terraform`: `terraform validate`
 
 ## Phase 4 evaluation and final verification
-- `docker compose run --rm backend uv run python /workspace/scripts/evaluate_w4.py --api-base-url http://backend:8000 --level l1 --limit 3`
-- `docker compose run --rm frontend npm run test -- --run`
+- `docker compose up -d --build backend postgres`
+- `docker compose run --rm backend uv run pytest tests/api/test_chat_contract.py tests/services/test_trace_formatter.py tests/services/test_evaluator_inputs.py -q`
+- `docker compose run --rm frontend npm run test -- src/features/chat/ChatPage.test.tsx src/features/trace/TracePanel.test.tsx --run`
 - `docker compose run --rm frontend npm run build`
 - `docker compose run --rm backend uv run pytest -q`
+- `docker compose exec backend uv run python scripts/evaluate_w4.py --api-base-url http://backend:8000 --level l1 --limit 3`
+- `docker compose down`

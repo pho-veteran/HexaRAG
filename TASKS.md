@@ -24,10 +24,10 @@ This file tracks high-level execution across the split implementation plans. Run
 - [x] Write `docs/aws.md`
 
 ### Phase 4 — Evaluation and Final Verification
-- [ ] Read `docs/superpowers/plans/2026-05-06-hexarag-testing.md`
-- [ ] Add W4 evaluation automation
-- [ ] Extend degraded-mode regression coverage
-- [ ] Run the full Docker Compose verification suite
+- [x] Read `docs/superpowers/plans/2026-05-06-hexarag-testing.md`
+- [x] Add W4 evaluation automation
+- [x] Extend degraded-mode regression coverage
+- [x] Run the full Docker Compose verification suite
 
 ## Plan Index
 - `docs/superpowers/plans/2026-05-06-hexarag-foundation.md` — local workspace, frontend shell, backend skeleton, first UI/API slice

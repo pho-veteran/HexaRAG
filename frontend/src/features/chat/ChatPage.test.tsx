@@ -74,6 +74,91 @@ describe('ChatPage', () => {
     )
   })
 
+  it('shows a sending state while waiting for the backend', async () => {
+    let resolveFetch: ((value: Response) => void) | undefined
+    fetchMock.mockReturnValue(
+      new Promise<Response>((resolve) => {
+        resolveFetch = resolve
+      }),
+    )
+
+    const user = userEvent.setup()
+    render(<ChatPage />)
+
+    await user.type(screen.getByPlaceholderText('Ask GeekBrain anything...'), 'Check PaymentGW SLA')
+    await user.click(screen.getByRole('button', { name: 'Send' }))
+
+    expect(screen.getByRole('button', { name: 'Sending...' })).toBeDisabled()
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+
+    resolveFetch?.({
+      ok: true,
+      json: async () => ({
+        session_id: 'phase1-session',
+        message: {
+          role: 'assistant',
+          content: 'done',
+          trace: {
+            citations: [],
+            tool_calls: [],
+            memory_window: [],
+            grounding_notes: [],
+            uncertainty: null,
+          },
+        },
+      }),
+    } as Response)
+
+    expect(await screen.findByText('done')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Send' })).toBeDisabled()
+    expect(screen.getByPlaceholderText('Ask GeekBrain anything...')).toHaveValue('')
+  })
+
+  it('renders a degraded success response without switching into hard-failure UI', async () => {
+    fetchMock.mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        session_id: 'phase1-session',
+        message: {
+          role: 'assistant',
+          content: 'Could not complete the live tool step. Here is the best grounded fallback available right now.',
+          trace: {
+            citations: [],
+            tool_calls: [
+              {
+                name: 'monitoring_snapshot',
+                status: 'error',
+                summary: 'Live monitoring call failed.',
+                input: { question: 'What is NotificationSvc status?' },
+                output: null,
+              },
+            ],
+            memory_window: ['What is PaymentGW latency?', 'Stub answer for: What is PaymentGW latency?'],
+            grounding_notes: ['Returned fallback answer because the live tool step failed.'],
+            uncertainty: 'Live monitoring data is temporarily unavailable.',
+          },
+        },
+      }),
+    } as Response)
+
+    const user = userEvent.setup()
+    render(<ChatPage />)
+
+    await user.type(screen.getByPlaceholderText('Ask GeekBrain anything...'), 'What is NotificationSvc status?')
+    await user.click(screen.getByRole('button', { name: 'Send' }))
+
+    expect(
+      await screen.findByText(
+        'Could not complete the live tool step. Here is the best grounded fallback available right now.',
+      ),
+    ).toBeInTheDocument()
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+    expect(screen.queryByText('Request failed')).not.toBeInTheDocument()
+    expect(screen.getByText('monitoring_snapshot: Live monitoring call failed.')).toBeInTheDocument()
+    expect(screen.getByText('Live monitoring data is temporarily unavailable.')).toBeInTheDocument()
+    expect(screen.getByText('Returned fallback answer because the live tool step failed.')).toBeInTheDocument()
+  })
+
   it('renders inline error, latest-result error state, and observability error details', async () => {
     fetchMock.mockResolvedValue({
       ok: false,

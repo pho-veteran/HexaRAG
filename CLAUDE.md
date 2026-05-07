@@ -77,7 +77,9 @@ Use these commands when the corresponding scaffold exists. If the repo has not r
 - `docker compose run --rm backend uv run python scripts/sync_knowledge_base.py --help`
 
 ### Evaluation
-- `docker compose run --rm backend uv run python /workspace/scripts/evaluate_w4.py --api-base-url http://backend:8000 --level l1 --limit 3`
+- `docker compose up -d --build backend postgres`
+- `docker compose exec backend uv run python scripts/evaluate_w4.py --api-base-url http://backend:8000 --level l1 --limit 3`
+- `docker compose down`
 
 ### Terraform
 Run from `infra/terraform`:

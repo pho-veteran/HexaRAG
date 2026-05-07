@@ -47,6 +47,34 @@ describe('TracePanel', () => {
     expect(screen.getByText('Live systems are not wired in this slice.')).toBeInTheDocument()
   })
 
+  it('renders degraded trace sections when the backend returns a fallback answer', () => {
+    render(
+      <TracePanel
+        trace={{
+          citations: [],
+          toolCalls: [
+            {
+              name: 'monitoring_snapshot',
+              status: 'error',
+              summary: 'Live monitoring call failed.',
+              input: { question: 'What is NotificationSvc status?' },
+              output: null,
+            },
+          ],
+          memoryWindow: ['What is PaymentGW latency?', 'Stub answer for: What is PaymentGW latency?'],
+          groundingNotes: ['Returned fallback answer because the live tool step failed.'],
+          uncertainty: 'Live monitoring data is temporarily unavailable.',
+        }}
+        error={null}
+      />,
+    )
+
+    expect(screen.getByText('Tool calls')).toBeInTheDocument()
+    expect(screen.getByText('monitoring_snapshot: Live monitoring call failed.')).toBeInTheDocument()
+    expect(screen.getByText('Returned fallback answer because the live tool step failed.')).toBeInTheDocument()
+    expect(screen.getByText('Live monitoring data is temporarily unavailable.')).toBeInTheDocument()
+  })
+
   it('renders failed-request details when the API call fails', () => {
     render(
       <TracePanel
