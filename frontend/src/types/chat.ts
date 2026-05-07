@@ -6,6 +6,12 @@ export interface Citation {
   recencyNote?: string
 }
 
+export interface InlineCitationAnchor {
+  start: number
+  end: number
+  sourceIds: string[]
+}
+
 export interface ToolCallTrace {
   name: string
   status: 'success' | 'error'
@@ -16,21 +22,44 @@ export interface ToolCallTrace {
 
 export interface TracePayload {
   citations: Citation[]
+  inlineCitations: InlineCitationAnchor[]
   toolCalls: ToolCallTrace[]
   memoryWindow: string[]
   groundingNotes: string[]
   uncertainty: string | null
 }
 
-export interface ChatMessage {
+export type TracePanelTab = 'observability' | 'thinking'
+
+export interface TraceNarrativeStep {
+  id: 'sources' | 'tools' | 'memory' | 'grounding' | 'uncertainty'
+  title: string
+  detail: string
+}
+
+export interface UserChatMessage {
+  id: string
+  role: 'user'
+  content: string
+}
+
+export interface AssistantChatMessage {
+  id: string
   role: 'assistant'
   content: string
   trace: TracePayload
+  label: string
 }
+
+export type ConversationMessage = UserChatMessage | AssistantChatMessage
 
 export interface ChatResponse {
   sessionId: string
-  message: ChatMessage
+  message: {
+    role: 'assistant'
+    content: string
+    trace: TracePayload
+  }
 }
 
 export interface ChatErrorState {

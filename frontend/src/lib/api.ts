@@ -21,8 +21,15 @@ interface ApiToolCallTrace {
   output: Record<string, unknown> | null
 }
 
+interface ApiInlineCitationAnchor {
+  start: number
+  end: number
+  source_ids: string[]
+}
+
 interface ApiTracePayload {
   citations: ApiCitation[]
+  inline_citations?: ApiInlineCitationAnchor[]
   tool_calls: ApiToolCallTrace[]
   memory_window: string[]
   grounding_notes: string[]
@@ -57,6 +64,11 @@ function mapTrace(trace: ApiTracePayload): TracePayload {
       excerpt: citation.excerpt,
       version: citation.version ?? undefined,
       recencyNote: citation.recency_note ?? undefined,
+    })),
+    inlineCitations: (trace.inline_citations ?? []).map((anchor) => ({
+      start: anchor.start,
+      end: anchor.end,
+      sourceIds: anchor.source_ids,
     })),
     toolCalls: trace.tool_calls,
     memoryWindow: trace.memory_window,

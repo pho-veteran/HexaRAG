@@ -19,7 +19,14 @@ def test_chat_returns_stubbed_message_and_trace() -> None:
     assert payload['session_id'] == 'phase1-session'
     assert payload['message']['role'] == 'assistant'
     assert 'trace' in payload['message']
-    assert 'citations' in payload['message']['trace']
+    assert payload['message']['trace']['citations'][0]['source_id'] == 'doc-architecture'
+    assert payload['message']['trace']['inline_citations'] == [
+        {
+            'start': 0,
+            'end': len(payload['message']['content']),
+            'source_ids': ['doc-architecture'],
+        }
+    ]
 
 
 def test_chat_returns_grounded_failure_when_runtime_errors() -> None:
@@ -35,6 +42,7 @@ def test_chat_returns_grounded_failure_when_runtime_errors() -> None:
     payload = response.json()
     assert 'could not complete the live tool step' in payload['message']['content'].lower()
     assert payload['message']['trace']['citations'] == []
+    assert payload['message']['trace']['inline_citations'] == []
     assert payload['message']['trace']['tool_calls'][0] == {
         'name': 'monitoring_snapshot',
         'status': 'error',

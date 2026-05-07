@@ -35,6 +35,10 @@ This file tracks high-level execution across the split implementation plans. Run
 - `docs/superpowers/plans/2026-05-06-hexarag-infra.md` — Terraform, AWS deployment, knowledge base upload/sync, deployment docs
 - `docs/superpowers/plans/2026-05-06-hexarag-testing.md` — evaluator, regression coverage, final verification commands
 - `docs/superpowers/plans/2026-05-06-hexarag-v1.md` — umbrella index and handoff document for the split plans
+- `docs/superpowers/plans/2026-05-07-frontend-observability-transcript.md` — transcript chat UI, sample demo prompts, referenced documents, per-reply trace selection
+- `docs/superpowers/plans/2026-05-07-frontend-ui-remake.md` — Executive Console frontend redesign with tabbed inspection console, refined to the light gradient review variant
+- `docs/superpowers/plans/2026-05-07-citation-list-modal.md` — row-by-row citation list, citation detail modal, and interactive mockup citation review
+- `docs/superpowers/plans/2026-05-07-inline-numbered-citations.md` — backend inline citation anchors plus frontend numbered inline citation rendering
 
 ## Notes
 - Docker Compose is the default path for local runtime, test execution, data seeding, and evaluation.

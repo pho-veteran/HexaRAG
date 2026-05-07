@@ -756,7 +756,7 @@ docker compose run --rm frontend npm run build
 
 Expected: PASS.
 
-Execution note: The approved Phase 1 UI is a single-turn form plus latest-result panel, not a transcript. Failed requests keep the form enabled, switch the latest-result area into an error state, and surface the request and error details in the observability panel.
+Execution note: The original Phase 1 UI shipped as a single-turn form plus latest-result panel. It has since been superseded by `docs/superpowers/plans/2026-05-07-frontend-observability-transcript.md`, which keeps the same `/chat` contract while rendering a transcript, compact referenced documents, and per-reply trace selection.
 
 - [x] **Step 5: Commit the first vertical slice**
 

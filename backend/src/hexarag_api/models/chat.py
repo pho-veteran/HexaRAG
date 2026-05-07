@@ -11,6 +11,12 @@ class Citation(BaseModel):
     recency_note: str | None = None
 
 
+class InlineCitationAnchor(BaseModel):
+    start: int = Field(ge=0)
+    end: int = Field(gt=0)
+    source_ids: list[str] = Field(default_factory=list)
+
+
 class ToolCallTrace(BaseModel):
     name: str
     status: Literal['success', 'error']
@@ -27,6 +33,7 @@ class ConflictResolution(BaseModel):
 
 class TracePayload(BaseModel):
     citations: list[Citation] = Field(default_factory=list)
+    inline_citations: list[InlineCitationAnchor] = Field(default_factory=list)
     tool_calls: list[ToolCallTrace] = Field(default_factory=list)
     memory_window: list[str] = Field(default_factory=list)
     grounding_notes: list[str] = Field(default_factory=list)

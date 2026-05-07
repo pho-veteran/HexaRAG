@@ -3,15 +3,24 @@ import { render, screen } from '@testing-library/react'
 import { TracePanel } from './TracePanel'
 
 describe('TracePanel', () => {
-  it('shows empty-state guidance before the first answer', () => {
-    render(<TracePanel trace={null} error={null} />)
+  it('renders inspection tabs and empty-state guidance before the first answer', () => {
+    render(
+      <TracePanel
+        trace={null}
+        error={null}
+        traceLabel={null}
+        activeTab="observability"
+        onTabChange={() => undefined}
+        onOpenMockup={() => undefined}
+      />,
+    )
 
-    expect(
-      screen.getByText('Send a question to inspect retrieval, tools, memory, and grounding.'),
-    ).toBeInTheDocument()
+    expect(screen.getByRole('tab', { name: 'Observability' })).toHaveAttribute('aria-selected', 'true')
+    expect(screen.getByRole('tab', { name: 'Thinking process' })).toHaveAttribute('aria-selected', 'false')
+    expect(screen.getByText('Select a response to inspect evidence and explanation.')).toBeInTheDocument()
   })
 
-  it('renders successful trace sections', () => {
+  it('renders observability sections when the observability tab is active', () => {
     render(
       <TracePanel
         trace={{
@@ -24,6 +33,7 @@ describe('TracePanel', () => {
               recencyNote: 'Stubbed knowledge base note.',
             },
           ],
+          inlineCitations: [],
           toolCalls: [
             {
               name: 'monitoring_snapshot',
@@ -38,44 +48,61 @@ describe('TracePanel', () => {
           uncertainty: 'Live systems are not wired in this slice.',
         }}
         error={null}
+        traceLabel="Response 2"
+        activeTab="observability"
+        onTabChange={() => undefined}
+        onOpenMockup={() => undefined}
       />,
     )
 
+    expect(screen.getByText('Inspecting Response 2.')).toBeInTheDocument()
     expect(screen.getByText('architecture.md')).toBeInTheDocument()
     expect(screen.getByText('monitoring_snapshot: Prepared stub observability data')).toBeInTheDocument()
-    expect(screen.getByText('No prior turns in Phase 1 single-turn mode.')).toBeInTheDocument()
-    expect(screen.getByText('Live systems are not wired in this slice.')).toBeInTheDocument()
   })
 
-  it('renders degraded trace sections when the backend returns a fallback answer', () => {
+  it('renders curated narrative steps when the thinking-process tab is active', () => {
     render(
       <TracePanel
         trace={{
-          citations: [],
+          citations: [
+            {
+              sourceId: 'doc-monitoring',
+              title: 'monitoring.md',
+              excerpt: 'PaymentGW latency p95 is 185 ms.',
+              version: undefined,
+              recencyNote: undefined,
+            },
+          ],
+          inlineCitations: [],
           toolCalls: [
             {
               name: 'monitoring_snapshot',
-              status: 'error',
-              summary: 'Live monitoring call failed.',
-              input: { question: 'What is NotificationSvc status?' },
-              output: null,
+              status: 'success',
+              summary: 'Fetched current PaymentGW metrics',
+              input: { question: 'What is PaymentGW latency?' },
+              output: { latency_p95_ms: 185 },
             },
           ],
-          memoryWindow: ['What is PaymentGW latency?', 'Stub answer for: What is PaymentGW latency?'],
-          groundingNotes: ['Returned fallback answer because the live tool step failed.'],
-          uncertainty: 'Live monitoring data is temporarily unavailable.',
+          memoryWindow: ['Who owns the Notifications service?'],
+          groundingNotes: ['Used live monitoring data.'],
+          uncertainty: null,
         }}
         error={null}
+        traceLabel="Response 2"
+        activeTab="thinking"
+        onTabChange={() => undefined}
+        onOpenMockup={() => undefined}
       />,
     )
 
-    expect(screen.getByText('Tool calls')).toBeInTheDocument()
-    expect(screen.getByText('monitoring_snapshot: Live monitoring call failed.')).toBeInTheDocument()
-    expect(screen.getByText('Returned fallback answer because the live tool step failed.')).toBeInTheDocument()
-    expect(screen.getByText('Live monitoring data is temporarily unavailable.')).toBeInTheDocument()
+    expect(screen.getByText('How the answer was formed')).toBeInTheDocument()
+    expect(screen.getByText('Checked sources')).toBeInTheDocument()
+    expect(screen.getByText('Ran tools')).toBeInTheDocument()
+    expect(screen.getByText('Used session context')).toBeInTheDocument()
+    expect(screen.getByText('Grounded answer')).toBeInTheDocument()
   })
 
-  it('renders failed-request details when the API call fails', () => {
+  it('renders failed-request details on the observability tab', () => {
     render(
       <TracePanel
         trace={null}
@@ -87,6 +114,10 @@ describe('TracePanel', () => {
           },
           details: ['Stub failure requested for UI error-state coverage.'],
         }}
+        traceLabel={null}
+        activeTab="observability"
+        onTabChange={() => undefined}
+        onOpenMockup={() => undefined}
       />,
     )
 

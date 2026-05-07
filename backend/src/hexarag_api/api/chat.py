@@ -27,8 +27,10 @@ class StubAgentRuntime:
         if message in {FAILURE_TRIGGER_MESSAGE, 'What is NotificationSvc status?'}:
             raise RuntimeError('live tool unavailable')
 
+        answer = f'Stub answer for: {message}'
+
         return {
-            'answer': f'Stub answer for: {message}',
+            'answer': answer,
             'trace': {
                 'citations': [
                     {
@@ -36,6 +38,13 @@ class StubAgentRuntime:
                         'title': 'architecture.md',
                         'excerpt': 'Current p95 latency sits below the alert threshold.',
                         'recency_note': 'Stubbed knowledge base note.',
+                    }
+                ],
+                'inline_citations': [
+                    {
+                        'start': 0,
+                        'end': len(answer),
+                        'source_ids': ['doc-architecture'],
                     }
                 ],
                 'tool_calls': [
@@ -74,6 +83,7 @@ async def post_chat(request: ChatRequest) -> ChatResponse:
         trace = build_trace_payload(
             {
                 'citations': [],
+                'inline_citations': [],
                 'tool_calls': [
                     {
                         'name': 'monitoring_snapshot',
