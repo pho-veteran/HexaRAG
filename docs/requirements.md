@@ -318,10 +318,10 @@ The following decisions are already fixed for HexaRAG v1:
 - bonus scope: include observability and scheduled KB sync
 - stretch scope: L5 investigation-readiness only, not full L5 delivery
 
-## 15. Implementation Artifacts Expected Later
+## 15. Implementation Artifacts
 
-Beyond this requirements document, the project is expected to later include:
-- `aws.md` for AWS deployment and architecture guidance
+The repository includes or is expected to include these implementation artifacts as work progresses:
+- `docs/aws.md` for AWS deployment and architecture guidance
 - Terraform configuration for provisioning the app infrastructure
 - implementation plans derived from these requirements
 - evidence-producing behaviors aligned with the W4 grading model

@@ -18,10 +18,10 @@ This file tracks high-level execution across the split implementation plans. Run
 - [x] Implement AgentCore orchestration, recent-turn memory, and trace formatting
 
 ### Phase 3 — AWS Infrastructure and KB Sync
-- [ ] Read `docs/superpowers/plans/2026-05-06-hexarag-infra.md`
-- [ ] Provision Terraform-managed AWS resources
-- [ ] Add knowledge base upload and scheduled sync flow
-- [ ] Write `docs/aws.md`
+- [x] Read `docs/superpowers/plans/2026-05-06-hexarag-infra.md`
+- [x] Provision Terraform-managed AWS resources
+- [x] Add knowledge base upload and scheduled sync flow
+- [x] Write `docs/aws.md`
 
 ### Phase 4 — Evaluation and Final Verification
 - [ ] Read `docs/superpowers/plans/2026-05-06-hexarag-testing.md`

@@ -1,6 +1,6 @@
 # HexaRAG Core Runtime Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal:** Add the W4 data integrations, AgentCore orchestration, recent-turn memory, and UI-facing trace shaping that power grounded HexaRAG answers.
 
@@ -45,7 +45,7 @@
 - Create: `backend/tests/services/test_analytics.py`
 - Create: `backend/tests/monitoring_api/test_monitoring_routes.py`
 
-- [ ] **Step 1: Write the failing tests for data queries and monitoring API parity**
+- [x] **Step 1: Write the failing tests for data queries and monitoring API parity**
 
 Create `backend/tests/services/test_analytics.py`:
 
@@ -81,7 +81,7 @@ def test_services_endpoint_lists_all_six_services():
     assert len(response.json()['services']) == 6
 ```
 
-- [ ] **Step 2: Run the tests to verify they fail**
+- [x] **Step 2: Run the tests to verify they fail**
 
 Run from `hexarag`:
 
@@ -91,7 +91,7 @@ docker compose run --rm backend uv run pytest tests/services/test_analytics.py t
 
 Expected: FAIL because the analytics functions and monitoring API do not exist yet.
 
-- [ ] **Step 3: Implement the monitoring service with W4-compatible endpoints**
+- [x] **Step 3: Implement the monitoring service with W4-compatible endpoints**
 
 Create `backend/src/monitoring_api/data.py`:
 
@@ -124,7 +124,7 @@ def get_metrics(service_name: str):
     return BASE_METRICS[service_name]
 ```
 
-- [ ] **Step 4: Implement analytics helpers and the CSV-to-PostgreSQL seed script**
+- [x] **Step 4: Implement analytics helpers and the CSV-to-PostgreSQL seed script**
 
 Create `backend/src/hexarag_api/tools/analytics.py`:
 
@@ -167,7 +167,7 @@ def load_monthly_costs(data_root: Path, connection) -> None:
         connection.commit()
 ```
 
-- [ ] **Step 5: Re-run the tests and validate the seed script interface**
+- [x] **Step 5: Re-run the tests and validate the seed script interface**
 
 Run from `hexarag`:
 
@@ -178,7 +178,7 @@ docker compose run --rm backend uv run python scripts/load_structured_data.py --
 
 Expected: tests PASS and script help renders without traceback.
 
-- [ ] **Step 6: Commit the W4 data services**
+- [x] **Step 6: Commit the W4 data services**
 
 ```bash
 git add backend
@@ -200,7 +200,7 @@ git commit -m "feat: add structured data queries and monitoring service"
 - Create: `backend/tests/services/test_trace_formatter.py`
 - Modify: `backend/tests/api/test_chat_contract.py`
 
-- [ ] **Step 1: Write failing tests for session windows and trace shaping**
+- [x] **Step 1: Write failing tests for session windows and trace shaping**
 
 Create `backend/tests/services/test_session_store.py`:
 
@@ -234,7 +234,7 @@ def test_build_trace_payload_surfaces_conflict_resolution():
     assert trace.memory_window == ['What is the PaymentGW rate limit?']
 ```
 
-- [ ] **Step 2: Run the tests to verify they fail**
+- [x] **Step 2: Run the tests to verify they fail**
 
 Run from `hexarag`:
 
@@ -244,7 +244,7 @@ docker compose run --rm backend uv run pytest tests/services/test_session_store.
 
 Expected: FAIL because the services do not exist.
 
-- [ ] **Step 3: Implement the session window helper and DynamoDB-backed store**
+- [x] **Step 3: Implement the session window helper and DynamoDB-backed store**
 
 Create `backend/src/hexarag_api/services/session_store.py`:
 
@@ -270,7 +270,7 @@ class SessionStore:
         self.table.put_item(Item={'session_id': session_id, 'turns': [*existing, user_message, assistant_message]})
 ```
 
-- [ ] **Step 4: Implement AgentCore invocation and trace formatting**
+- [x] **Step 4: Implement AgentCore invocation and trace formatting**
 
 Create `backend/src/hexarag_api/services/agent_runtime.py`:
 
@@ -313,7 +313,7 @@ def build_trace_payload(raw: dict, memory_window: list[str]) -> TracePayload:
     )
 ```
 
-- [ ] **Step 5: Wire the real chat endpoint to memory + AgentCore + trace formatting**
+- [x] **Step 5: Wire the real chat endpoint to memory + AgentCore + trace formatting**
 
 Update `backend/src/hexarag_api/api/chat.py` so it:
 1. loads recent turns from `SessionStore`
@@ -335,7 +335,7 @@ async def chat(request: ChatRequest) -> ChatResponse:
     return ChatResponse(session_id=request.session_id, message=ChatMessage(role='assistant', content=content, trace=trace))
 ```
 
-- [ ] **Step 6: Re-run the tests and add a graceful-failure case**
+- [x] **Step 6: Re-run the tests and add a graceful-failure case**
 
 Add this assertion to `backend/tests/api/test_chat_contract.py` after wiring dependency injection:
 
@@ -354,7 +354,7 @@ docker compose run --rm backend uv run pytest tests/api/test_chat_contract.py te
 
 Expected: PASS.
 
-- [ ] **Step 7: Commit the orchestration layer**
+- [x] **Step 7: Commit the orchestration layer**
 
 ```bash
 git add backend
@@ -393,10 +393,4 @@ Do not mix aliasing and raw field names ad hoc.
 
 ---
 
-Plan complete and saved to `docs/superpowers/plans/2026-05-06-hexarag-core-runtime.md`. Two execution options:
-
-**1. Subagent-Driven (recommended)** - I dispatch a fresh subagent per task, review between tasks, fast iteration
-
-**2. Inline Execution** - Execute tasks in this session using executing-plans, batch execution with checkpoints
-
-**Which approach?**
+Plan complete and saved to `docs/superpowers/plans/2026-05-06-hexarag-core-runtime.md`.

@@ -19,3 +19,15 @@
 - `docker compose run --rm backend uv run pytest tests/services/test_analytics.py tests/monitoring_api/test_monitoring_routes.py -q`
 - `docker compose run --rm backend uv run pytest tests/api/test_chat_contract.py tests/services/test_session_store.py tests/services/test_trace_formatter.py -q`
 - `docker compose run --rm backend uv run python scripts/load_structured_data.py --help`
+
+## Phase 3 infrastructure and KB sync verification
+- `docker compose run --rm backend uv run python scripts/sync_knowledge_base.py --help`
+- `docker compose run --rm backend uv run python scripts/upload_knowledge_base.py --bucket <knowledge-base-bucket>`
+- from `infra/terraform`: `terraform fmt -check`
+- from `infra/terraform`: `terraform validate`
+
+## Phase 4 evaluation and final verification
+- `docker compose run --rm backend uv run python /workspace/scripts/evaluate_w4.py --api-base-url http://backend:8000 --level l1 --limit 3`
+- `docker compose run --rm frontend npm run test -- --run`
+- `docker compose run --rm frontend npm run build`
+- `docker compose run --rm backend uv run pytest -q`

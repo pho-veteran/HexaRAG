@@ -1,6 +1,6 @@
 # HexaRAG Infrastructure Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal:** Provision the AWS deployment stack for HexaRAG, including knowledge base storage, scheduled sync, and deployment documentation.
 
@@ -52,7 +52,7 @@
 - Create: `backend/scripts/sync_knowledge_base.py`
 - Create: `docs/aws.md`
 
-- [ ] **Step 1: Write the Terraform skeleton and resource inputs**
+- [x] **Step 1: Write the Terraform skeleton and resource inputs**
 
 Create `infra/terraform/providers.tf`:
 
@@ -85,7 +85,7 @@ variable "knowledge_base_id" { type = string }
 variable "knowledge_base_data_source_id" { type = string }
 ```
 
-- [ ] **Step 2: Add AWS infrastructure resources**
+- [x] **Step 2: Add AWS infrastructure resources**
 
 Create these Terraform resources:
 - `networking.tf`: VPC, 2 public subnets, 2 private subnets, Lambda security group, RDS security group.
@@ -110,7 +110,7 @@ resource "aws_dynamodb_table" "sessions" {
 }
 ```
 
-- [ ] **Step 3: Add Bedrock sync scripts and scheduler entrypoint**
+- [x] **Step 3: Add Bedrock sync scripts and scheduler entrypoint**
 
 Create `backend/scripts/sync_knowledge_base.py`:
 
@@ -134,7 +134,7 @@ if __name__ == '__main__':
 
 Create `backend/scripts/upload_knowledge_base.py` so it uploads `../xbrain-learners/W4/data_package/knowledge_base/*.md` to the KB S3 bucket using `boto3.client('s3').upload_file(...)`.
 
-- [ ] **Step 4: Document the deployed AWS architecture in `docs/aws.md`**
+- [x] **Step 4: Document the deployed AWS architecture in `docs/aws.md`**
 
 Write `docs/aws.md` with these sections:
 
@@ -159,7 +159,7 @@ Also include:
 - KB upload and sync commands
 - where to find API URLs and bucket names
 
-- [ ] **Step 5: Validate Terraform formatting and docs-adjacent scripts**
+- [x] **Step 5: Validate Terraform formatting and docs-adjacent scripts**
 
 Run from `infra/terraform`:
 
@@ -176,7 +176,7 @@ docker compose run --rm backend uv run python scripts/sync_knowledge_base.py --h
 
 Expected: Terraform validates and the Python script imports cleanly.
 
-- [ ] **Step 6: Commit the infrastructure layer**
+- [x] **Step 6: Commit the infrastructure layer**
 
 ```bash
 git add infra docs/aws.md backend/scripts
@@ -211,10 +211,4 @@ Do not invent different resource naming patterns between Terraform and docs.
 
 ---
 
-Plan complete and saved to `docs/superpowers/plans/2026-05-06-hexarag-infra.md`. Two execution options:
-
-**1. Subagent-Driven (recommended)** - I dispatch a fresh subagent per task, review between tasks, fast iteration
-
-**2. Inline Execution** - Execute tasks in this session using executing-plans, batch execution with checkpoints
-
-**Which approach?**
+Plan complete and saved to `docs/superpowers/plans/2026-05-06-hexarag-infra.md`.

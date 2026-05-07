@@ -13,6 +13,8 @@ class Settings(BaseSettings):
     session_table_name: str = 'hexarag-sessions'
     monitoring_base_url: str = 'http://backend:8001'
     w4_data_root: str = '/workspace/W4/data_package'
+    knowledge_base_id: str = ''
+    knowledge_base_data_source_id: str = ''
     agent_runtime_arn: str = ''
     failure_message: str = 'Could not complete the live tool step. Here is the best grounded fallback available right now.'
     recent_turn_limit: int = 6

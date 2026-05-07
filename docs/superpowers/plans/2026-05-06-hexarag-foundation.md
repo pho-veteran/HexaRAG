@@ -1,6 +1,6 @@
 # HexaRAG Foundation Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal:** Build the Docker Compose-first development workspace and the first end-to-end HexaRAG vertical slice from chat UI to stubbed API response.
 
@@ -67,7 +67,7 @@
 - Create: `backend/.env.example`
 - Create: `scripts/docker/wait-for-postgres.sh`
 
-- [ ] **Step 1: Create the Vite + React and FastAPI workspaces inside disposable containers**
+- [x] **Step 1: Create the Vite + React and FastAPI workspaces inside disposable containers**
 
 Run from `C:\Users\thanh\Desktop\workspace\xbrain\hexarag`:
 
@@ -92,7 +92,7 @@ export default defineConfig({
 })
 ```
 
-- [ ] **Step 2: Create Dockerfiles and Compose services for frontend, backend, and Postgres**
+- [x] **Step 2: Create Dockerfiles and Compose services for frontend, backend, and Postgres**
 
 Create `frontend/Dockerfile`:
 
@@ -160,7 +160,7 @@ volumes:
   postgres-data:
 ```
 
-- [ ] **Step 3: Add repo-wide ignore rules, env examples, and container helper script**
+- [x] **Step 3: Add repo-wide ignore rules, env examples, and container helper script**
 
 Create `.gitignore` with at least:
 
@@ -211,7 +211,7 @@ done
 exec "$@"
 ```
 
-- [ ] **Step 4: Verify the toolchains through Docker Compose before writing app code**
+- [x] **Step 4: Verify the toolchains through Docker Compose before writing app code**
 
 Run from `hexarag`:
 
@@ -222,7 +222,7 @@ docker compose run --rm backend uv run python -c "import fastapi, boto3, psycopg
 
 Expected: frontend build succeeds and backend import check exits with no output.
 
-- [ ] **Step 5: Commit the scaffolding**
+- [x] **Step 5: Commit the scaffolding**
 
 ```bash
 git add .gitignore docker-compose.yml frontend backend scripts/docker
@@ -237,7 +237,7 @@ git commit -m "chore: scaffold hexarag docker compose workspace"
 - Modify: `docs/requirements.md`
 - Create: `docs/local-dev.md`
 
-- [ ] **Step 1: Write the local workflow guide**
+- [x] **Step 1: Write the local workflow guide**
 
 Create `docs/local-dev.md` with these sections:
 
@@ -255,7 +255,7 @@ Create `docs/local-dev.md` with these sections:
 - `docker compose run --rm backend uv run python scripts/load_structured_data.py`
 ```
 
-- [ ] **Step 2: Commit the workflow guide**
+- [x] **Step 2: Commit the workflow guide**
 
 ```bash
 git add docs/local-dev.md docs/requirements.md
@@ -279,7 +279,7 @@ git commit -m "docs: add docker compose local workflow"
 - Create: `frontend/src/styles.css`
 - Create: `frontend/src/test/setup.ts`
 
-- [ ] **Step 1: Write the failing frontend layout tests**
+- [x] **Step 1: Write the failing frontend layout tests**
 
 Create `frontend/src/features/chat/ChatPage.test.tsx`:
 
@@ -308,7 +308,7 @@ it('shows empty-state guidance before the first answer', () => {
 })
 ```
 
-- [ ] **Step 2: Run the tests to verify they fail**
+- [x] **Step 2: Run the tests to verify they fail**
 
 Run from `hexarag`:
 
@@ -318,7 +318,7 @@ docker compose run --rm frontend npm run test -- src/features/chat/ChatPage.test
 
 Expected: FAIL because `ChatPage` and `TracePanel` do not exist yet.
 
-- [ ] **Step 3: Implement the app shell and shared types**
+- [x] **Step 3: Implement the app shell and shared types**
 
 Create `frontend/src/types/chat.ts`:
 
@@ -422,7 +422,7 @@ export default function App() {
 }
 ```
 
-- [ ] **Step 4: Add basic styles and verify the layout tests pass**
+- [x] **Step 4: Add basic styles and verify the layout tests pass**
 
 Update `frontend/src/styles.css` with a real two-pane layout:
 
@@ -463,7 +463,7 @@ docker compose run --rm frontend npm run build
 
 Expected: tests PASS and build succeeds.
 
-- [ ] **Step 5: Commit the frontend shell**
+- [x] **Step 5: Commit the frontend shell**
 
 ```bash
 git add frontend
@@ -484,7 +484,7 @@ git commit -m "feat: add hexarag chat shell and observability panel"
 - Create: `backend/tests/test_health.py`
 - Create: `backend/tests/api/test_chat_contract.py`
 
-- [ ] **Step 1: Write failing backend contract tests**
+- [x] **Step 1: Write failing backend contract tests**
 
 Create `backend/tests/test_health.py`:
 
@@ -521,7 +521,7 @@ def test_chat_returns_message_and_trace_payload():
     assert 'citations' in payload['message']['trace']
 ```
 
-- [ ] **Step 2: Run the backend tests to verify they fail**
+- [x] **Step 2: Run the backend tests to verify they fail**
 
 Run from `hexarag`:
 
@@ -531,7 +531,7 @@ docker compose run --rm backend uv run pytest tests/test_health.py tests/api/tes
 
 Expected: FAIL because the FastAPI app and routes do not exist.
 
-- [ ] **Step 3: Implement Pydantic models and stub routes**
+- [x] **Step 3: Implement Pydantic models and stub routes**
 
 Create `backend/src/hexarag_api/models/chat.py`:
 
@@ -616,7 +616,7 @@ from hexarag_api.main import app
 handler = Mangum(app)
 ```
 
-- [ ] **Step 4: Run the tests again and verify the contract is stable**
+- [x] **Step 4: Run the tests again and verify the contract is stable**
 
 Run from `hexarag`:
 
@@ -626,9 +626,9 @@ docker compose run --rm backend uv run pytest tests/test_health.py tests/api/tes
 
 Expected: PASS.
 
-Execution note: The approved backend chat endpoint for this vertical slice is `POST /chat`, not `/api/chat`. See `docs/superpowers/plans/2026-05-07-phase1-vertical-slice-implementation.md` for the Phase 1 implementation decision and alignment details.
+Execution note: The approved backend chat endpoint for this vertical slice is `POST /chat`, not `/api/chat`.
 
-- [ ] **Step 5: Commit the backend skeleton**
+- [x] **Step 5: Commit the backend skeleton**
 
 ```bash
 git add backend
@@ -647,7 +647,7 @@ git commit -m "feat: add fastapi chat contract and lambda handler"
 - Modify: `frontend/src/types/chat.ts`
 - Modify: `frontend/src/features/chat/ChatPage.test.tsx`
 
-- [ ] **Step 1: Write the failing frontend interaction test**
+- [x] **Step 1: Write the failing frontend interaction test**
 
 Update `frontend/src/features/chat/ChatPage.test.tsx`:
 
@@ -689,7 +689,7 @@ it('submits a question and renders the answer plus trace output', async () => {
 })
 ```
 
-- [ ] **Step 2: Run the test to verify it fails**
+- [x] **Step 2: Run the test to verify it fails**
 
 Run from `hexarag`:
 
@@ -699,7 +699,7 @@ docker compose run --rm frontend npm run test -- src/features/chat/ChatPage.test
 
 Expected: FAIL because there is no fetch-backed state management yet.
 
-- [ ] **Step 3: Implement the API client and session hook**
+- [x] **Step 3: Implement the API client and session hook**
 
 Create `frontend/src/lib/api.ts`:
 
@@ -743,7 +743,7 @@ export function useChatSession() {
 }
 ```
 
-- [ ] **Step 4: Wire the UI to the hook and verify the test passes**
+- [x] **Step 4: Wire the UI to the hook and verify the test passes**
 
 Update `frontend/src/features/chat/ChatPage.tsx` so submit uses `useChatSession()` and renders `messages` plus `TracePanel trace={trace}`.
 
@@ -758,7 +758,7 @@ Expected: PASS.
 
 Execution note: The approved Phase 1 UI is a single-turn form plus latest-result panel, not a transcript. Failed requests keep the form enabled, switch the latest-result area into an error state, and surface the request and error details in the observability panel.
 
-- [ ] **Step 5: Commit the first vertical slice**
+- [x] **Step 5: Commit the first vertical slice**
 
 ```bash
 git add frontend
@@ -793,10 +793,4 @@ Do not mix casing patterns ad hoc.
 
 ---
 
-Plan complete and saved to `docs/superpowers/plans/2026-05-06-hexarag-foundation.md`. Two execution options:
-
-**1. Subagent-Driven (recommended)** - I dispatch a fresh subagent per task, review between tasks, fast iteration
-
-**2. Inline Execution** - Execute tasks in this session using executing-plans, batch execution with checkpoints
-
-**Which approach?**
+Plan complete and saved to `docs/superpowers/plans/2026-05-06-hexarag-foundation.md`.

@@ -179,10 +179,4 @@ Do not change CLI flag names between the script, docs, and verification commands
 
 ---
 
-Plan complete and saved to `docs/superpowers/plans/2026-05-06-hexarag-testing.md`. Two execution options:
-
-**1. Subagent-Driven (recommended)** - I dispatch a fresh subagent per task, review between tasks, fast iteration
-
-**2. Inline Execution** - Execute tasks in this session using executing-plans, batch execution with checkpoints
-
-**Which approach?**
+Plan complete and saved to `docs/superpowers/plans/2026-05-06-hexarag-testing.md`.
