@@ -2,7 +2,7 @@
 
 ## Rules
 - Do not run Node, Python, PostgreSQL, or test commands directly on the host.
-- Use Docker Compose for app runtime, tests, and data seeding.
+- Use Docker Compose for app runtime, tests, builds, and data seeding.
 
 ## Common commands
 - `docker compose up --build frontend backend postgres`
@@ -13,7 +13,7 @@
 ## Frontend API base URL rule
 - The `frontend` service now scopes `VITE_API_BASE_URL=http://backend:8000` to the dev-server command only, so local `docker compose up` still works without leaking that Docker-only URL into production builds.
 - For AWS deployment builds, pass the deployed backend URL explicitly when building frontend assets. Example: `VITE_API_BASE_URL="https://your-backend-api-url" docker compose run --rm frontend sh -lc 'node node_modules/vite/bin/vite.js build'`.
-- Do not rely on the frontend service definition to provide the production API URL during `docker compose run`; that path caused the mixed-content production bug by baking `http://backend:8000` into the shipped bundle.
+- Do not rely on the frontend service definition to provide the production API URL during `docker compose run`; that path previously baked `http://backend:8000` into the shipped bundle.
 
 ## Phase 1 vertical slice verification
 - `docker compose run --rm backend uv run pytest tests/test_health.py tests/api/test_chat_contract.py -q`
@@ -24,6 +24,16 @@
 - `docker compose run --rm backend uv run pytest tests/services/test_analytics.py tests/monitoring_api/test_monitoring_routes.py -q`
 - `docker compose run --rm backend uv run pytest tests/api/test_chat_contract.py tests/services/test_session_store.py tests/services/test_trace_formatter.py -q`
 - `docker compose run --rm backend uv run python scripts/load_structured_data.py --help`
+
+## Focused runtime/trace verification
+- `docker compose run --rm backend uv run pytest tests/services/test_trace_formatter.py tests/services/test_chat_service.py tests/api/test_chat_contract.py -q`
+- `docker compose run --rm frontend npm run test -- src/features/chat/ChatPage.test.tsx src/features/trace/TracePanel.test.tsx src/features/trace/buildTraceNarrative.test.ts --run`
+
+These focused checks cover:
+- backend-owned Bedrock instruction contract
+- runtime/model metadata shaping
+- richer Thinking-tab narrative fields
+- per-page session ID behavior that resets on remount/refresh
 
 ## Phase 3 infrastructure and KB sync verification
 - `docker compose run --rm backend uv run python scripts/sync_knowledge_base.py --help`

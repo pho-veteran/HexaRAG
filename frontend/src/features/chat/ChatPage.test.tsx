@@ -5,6 +5,44 @@ import { ChatPage } from './ChatPage'
 
 const fetchMock = vi.fn()
 
+function buildApiTrace(overrides: Record<string, unknown> = {}) {
+  return {
+    citations: [],
+    inline_citations: [],
+    tool_calls: [],
+    memory_window: [],
+    grounding_notes: [],
+    uncertainty: null,
+    conflict_resolution: null,
+    runtime: {
+      mode: 'stub',
+      provider: 'stub-runtime',
+      region: null,
+      agent_id: null,
+      agent_alias_id: null,
+      model: 'deterministic-stub',
+    },
+    reasoning: {
+      evidence_types: [],
+      selected_sources: [],
+      tool_basis: [],
+      memory_applied: false,
+      memory_summary: null,
+      uncertainty_reason: null,
+      answer_strategy: 'grounded-answer',
+      runtime_label: 'deterministic-stub via stub-runtime',
+      caveat: null,
+      source_summary: 'No citations were available for this answer.',
+      tool_summary: 'No tool calls were needed for this answer.',
+      explanation_summary: 'The answer was formed from the evidence available in this turn.',
+      narrative_focus: 'evidence-synthesis',
+      next_step: null,
+      conflict_summary: null,
+    },
+    ...overrides,
+  }
+}
+
 beforeEach(() => {
   fetchMock.mockReset()
   vi.stubGlobal('fetch', fetchMock)
@@ -105,7 +143,7 @@ describe('ChatPage', () => {
         message: {
           role: 'assistant',
           content: 'Team Mercury owns the Notifications service.',
-          trace: {
+          trace: buildApiTrace({
             citations: [
               {
                 source_id: 'doc-ownership',
@@ -115,11 +153,8 @@ describe('ChatPage', () => {
                 recency_note: 'Updated 2026-04-30.',
               },
             ],
-            tool_calls: [],
-            memory_window: [],
             grounding_notes: ['Grounded in the ownership document.'],
-            uncertainty: null,
-          },
+          }),
         },
       }),
     } as Response)
@@ -152,7 +187,7 @@ describe('ChatPage', () => {
         message: {
           role: 'assistant',
           content: 'Team Mercury owns the Notifications service. Mercury also handles escalations.',
-          trace: {
+          trace: buildApiTrace({
             citations: [
               {
                 source_id: 'doc-ownership',
@@ -173,11 +208,8 @@ describe('ChatPage', () => {
               { start: 0, end: 42, source_ids: ['doc-ownership'] },
               { start: 43, end: 76, source_ids: ['doc-ownership', 'doc-escalation'] },
             ],
-            tool_calls: [],
-            memory_window: [],
             grounding_notes: ['Grounded in ownership and escalation documents.'],
-            uncertainty: null,
-          },
+          }),
         },
       }),
     } as Response)
@@ -209,7 +241,7 @@ describe('ChatPage', () => {
           message: {
             role: 'assistant',
             content: 'Team Mercury owns the Notifications service.',
-            trace: {
+            trace: buildApiTrace({
               citations: [
                 {
                   source_id: 'doc-ownership',
@@ -220,11 +252,8 @@ describe('ChatPage', () => {
                 },
               ],
               inline_citations: [{ start: 0, end: 42, source_ids: ['doc-ownership'] }],
-              tool_calls: [],
-              memory_window: [],
               grounding_notes: ['Grounded in the ownership document.'],
-              uncertainty: null,
-            },
+            }),
           },
         }),
       } as Response)
@@ -235,7 +264,7 @@ describe('ChatPage', () => {
           message: {
             role: 'assistant',
             content: 'PaymentGW current latency is 185 ms.',
-            trace: {
+            trace: buildApiTrace({
               citations: [
                 {
                   source_id: 'doc-monitoring',
@@ -246,11 +275,8 @@ describe('ChatPage', () => {
                 },
               ],
               inline_citations: [{ start: 0, end: 35, source_ids: ['doc-monitoring'] }],
-              tool_calls: [],
-              memory_window: [],
               grounding_notes: ['Used live monitoring data.'],
-              uncertainty: null,
-            },
+            }),
           },
         }),
       } as Response)
@@ -277,7 +303,7 @@ describe('ChatPage', () => {
         message: {
           role: 'assistant',
           content: 'Team Mercury owns the Notifications service.',
-          trace: {
+          trace: buildApiTrace({
             citations: [
               {
                 source_id: 'doc-ownership',
@@ -287,11 +313,8 @@ describe('ChatPage', () => {
                 recency_note: null,
               },
             ],
-            tool_calls: [],
-            memory_window: [],
             grounding_notes: ['Grounded in the ownership document.'],
-            uncertainty: null,
-          },
+          }),
         },
       }),
     } as Response)
@@ -317,7 +340,7 @@ describe('ChatPage', () => {
           message: {
             role: 'assistant',
             content: 'Team Mercury owns the Notifications service.',
-            trace: {
+            trace: buildApiTrace({
               citations: [
                 {
                   source_id: 'doc-ownership',
@@ -327,11 +350,8 @@ describe('ChatPage', () => {
                   recency_note: 'Updated 2026-04-30.',
                 },
               ],
-              tool_calls: [],
-              memory_window: [],
               grounding_notes: ['Grounded in the ownership document.'],
-              uncertainty: null,
-            },
+            }),
           },
         }),
       } as Response)
@@ -342,7 +362,7 @@ describe('ChatPage', () => {
           message: {
             role: 'assistant',
             content: 'PaymentGW current latency is 185 ms.',
-            trace: {
+            trace: buildApiTrace({
               citations: [
                 {
                   source_id: 'doc-monitoring',
@@ -363,8 +383,7 @@ describe('ChatPage', () => {
               ],
               memory_window: ['Who owns the Notifications service?'],
               grounding_notes: ['Used live monitoring data.'],
-              uncertainty: null,
-            },
+            }),
           },
         }),
       } as Response)
@@ -404,7 +423,7 @@ describe('ChatPage', () => {
           message: {
             role: 'assistant',
             content: 'Team Mercury owns the Notifications service.',
-            trace: {
+            trace: buildApiTrace({
               citations: [
                 {
                   source_id: 'doc-ownership',
@@ -423,10 +442,25 @@ describe('ChatPage', () => {
                   output: { source: 'ownership.md' },
                 },
               ],
-              memory_window: [],
               grounding_notes: ['Used the ownership document.'],
-              uncertainty: null,
-            },
+              reasoning: {
+                evidence_types: ['retrieval', 'tool'],
+                selected_sources: ['ownership.md'],
+                tool_basis: ['knowledge_base_lookup'],
+                memory_applied: false,
+                memory_summary: null,
+                uncertainty_reason: null,
+                answer_strategy: 'grounded-answer',
+                runtime_label: 'deterministic-stub via stub-runtime',
+                caveat: null,
+                source_summary: 'Selected 1 source that directly shaped the answer.',
+                tool_summary: 'Used 1 tool result in the final answer.',
+                explanation_summary: 'The answer combined retrieved evidence and live tool data.',
+                narrative_focus: 'evidence-synthesis',
+                next_step: null,
+                conflict_summary: null,
+              },
+            }),
           },
         }),
       } as Response)
@@ -437,7 +471,7 @@ describe('ChatPage', () => {
           message: {
             role: 'assistant',
             content: 'PaymentGW current latency is 185 ms.',
-            trace: {
+            trace: buildApiTrace({
               citations: [
                 {
                   source_id: 'doc-monitoring',
@@ -458,8 +492,24 @@ describe('ChatPage', () => {
               ],
               memory_window: ['Who owns the Notifications service?'],
               grounding_notes: ['Used live monitoring data.'],
-              uncertainty: null,
-            },
+              reasoning: {
+                evidence_types: ['retrieval', 'tool', 'memory'],
+                selected_sources: ['monitoring.md'],
+                tool_basis: ['monitoring_snapshot'],
+                memory_applied: true,
+                memory_summary: 'Used 1 recent conversation item to keep the answer on topic.',
+                uncertainty_reason: null,
+                answer_strategy: 'grounded-answer',
+                runtime_label: 'deterministic-stub via stub-runtime',
+                caveat: null,
+                source_summary: 'Selected 1 source that directly shaped the answer.',
+                tool_summary: 'Used 1 tool result in the final answer.',
+                explanation_summary: 'The answer combined retrieved evidence, live tool data, and recent conversation context.',
+                narrative_focus: 'evidence-synthesis',
+                next_step: null,
+                conflict_summary: null,
+              },
+            }),
           },
         }),
       } as Response)
@@ -479,17 +529,18 @@ describe('ChatPage', () => {
 
     expect(screen.getByRole('tab', { name: 'Thinking process' })).toHaveAttribute('aria-selected', 'true')
     expect(screen.getByText('How the answer was formed')).toBeInTheDocument()
-    expect(screen.getByText('Checked sources')).toBeInTheDocument()
-    expect(screen.getByText('Ran tools')).toBeInTheDocument()
-    expect(screen.getByText('Used session context')).toBeInTheDocument()
-    expect(screen.getByText('Grounded answer')).toBeInTheDocument()
+    expect(screen.getByText('Generated response')).toBeInTheDocument()
+    expect(screen.getByText('Synthesized evidence')).toBeInTheDocument()
+    expect(screen.getByText('Selected answer-shaping sources')).toBeInTheDocument()
+    expect(screen.getByText('Applied tool results')).toBeInTheDocument()
+    expect(screen.getByText('Reused recent context')).toBeInTheDocument()
 
     const responseOne = screen.getByRole('article', { name: 'Response 1' })
     await user.click(within(responseOne).getByRole('button', { name: 'Inspect response' }))
 
     expect(screen.getByRole('tab', { name: 'Thinking process' })).toHaveAttribute('aria-selected', 'true')
     expect(responseOne).toHaveClass('message-card--selected')
-    expect(screen.getByText('Reviewed 1 retrieved source: ownership.md.')).toBeInTheDocument()
+    expect(screen.getByText('Selected 1 source that directly shaped the answer. Key source: ownership.md.')).toBeInTheDocument()
   })
 
   it('returns the inspection console to observability when a request fails after the user was reading thinking-process details', async () => {
@@ -501,13 +552,9 @@ describe('ChatPage', () => {
           message: {
             role: 'assistant',
             content: 'Team Mercury owns the Notifications service.',
-            trace: {
-              citations: [],
-              tool_calls: [],
-              memory_window: [],
+            trace: buildApiTrace({
               grounding_notes: ['Grounded in the ownership document.'],
-              uncertainty: null,
-            },
+            }),
           },
         }),
       } as Response)
@@ -543,5 +590,71 @@ describe('ChatPage', () => {
     expect(screen.getByRole('tab', { name: 'Observability' })).toHaveAttribute('aria-selected', 'true')
     expect(screen.getByText('Last request')).toBeInTheDocument()
     expect(screen.getByText('Stub failure requested for UI error-state coverage.')).toBeInTheDocument()
+  })
+
+  it('shows a fallback error instead of crashing when chat returns a plain-text 500 response', async () => {
+    fetchMock.mockResolvedValueOnce({
+      ok: false,
+      status: 500,
+      statusText: 'Internal Server Error',
+      text: async () => 'Internal Server Error',
+    } as Response)
+
+    const user = userEvent.setup()
+    render(<ChatPage />)
+
+    await user.type(screen.getByRole('textbox', { name: 'Question' }), 'trigger plain failure')
+    await user.click(screen.getByRole('button', { name: 'Send' }))
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Internal Server Error')
+    expect(screen.getByRole('tab', { name: 'Observability' })).toHaveAttribute('aria-selected', 'true')
+
+    const lastRequest = screen.getByText('Last request').closest('section')
+    expect(lastRequest).not.toBeNull()
+    expect(within(lastRequest as HTMLElement).getByText('trigger plain failure')).toBeInTheDocument()
+  })
+
+  it('uses one session id per page load and generates a new one after remount', async () => {
+    fetchMock.mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        session_id: 'server-session',
+        message: {
+          role: 'assistant',
+          content: 'ok',
+          trace: buildApiTrace(),
+        },
+      }),
+    } as Response)
+
+    const user = userEvent.setup()
+    const firstRender = render(<ChatPage />)
+
+    await user.type(screen.getByRole('textbox', { name: 'Question' }), 'First question')
+    await user.click(screen.getByRole('button', { name: 'Send' }))
+    await screen.findByText('ok')
+
+    await user.clear(screen.getByRole('textbox', { name: 'Question' }))
+    await user.type(screen.getByRole('textbox', { name: 'Question' }), 'Second question')
+    await user.click(screen.getByRole('button', { name: 'Send' }))
+    await screen.findAllByText('ok')
+
+    firstRender.unmount()
+    render(<ChatPage />)
+
+    await user.type(screen.getByRole('textbox', { name: 'Question' }), 'Third question')
+    await user.click(screen.getByRole('button', { name: 'Send' }))
+    await screen.findByText('ok')
+
+    expect(fetchMock).toHaveBeenCalledTimes(3)
+
+    const firstSessionId = JSON.parse(fetchMock.mock.calls[0][1].body as string).session_id
+    const secondSessionId = JSON.parse(fetchMock.mock.calls[1][1].body as string).session_id
+    const thirdSessionId = JSON.parse(fetchMock.mock.calls[2][1].body as string).session_id
+
+    expect(firstSessionId).toBe(secondSessionId)
+    expect(thirdSessionId).not.toBe(firstSessionId)
+    expect(typeof firstSessionId).toBe('string')
+    expect(firstSessionId.length).toBeGreaterThan(0)
   })
 })

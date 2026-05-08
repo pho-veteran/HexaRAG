@@ -9,7 +9,13 @@ import type {
   TracePayload,
 } from '../../types/chat'
 
-const SESSION_ID = 'phase1-session'
+function createSessionId(): string {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return crypto.randomUUID()
+  }
+
+  return `session-${Math.random().toString(36).slice(2)}-${Date.now()}`
+}
 
 interface ChatSessionState {
   prompt: string
@@ -37,6 +43,7 @@ export function useChatSession(): ChatSessionState {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const nextMessageIdRef = useRef(0)
   const nextAssistantNumberRef = useRef(1)
+  const sessionIdRef = useRef(createSessionId())
 
   const canSubmit = !isSubmitting && prompt.trim().length > 0
 
@@ -74,7 +81,7 @@ export function useChatSession(): ChatSessionState {
     setError(null)
 
     try {
-      const response = await postChatMessage(SESSION_ID, submittedPrompt)
+      const response = await postChatMessage(sessionIdRef.current, submittedPrompt)
       const assistantMessage: AssistantChatMessage = {
         id: createMessageId('assistant'),
         role: 'assistant',

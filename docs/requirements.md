@@ -56,7 +56,7 @@ The chat experience must:
 - support freeform user questions
 - show conversation history clearly
 - support streamed or progressively revealed assistant responses
-- preserve session continuity for follow-up questions
+- preserve session continuity for follow-up questions within the current page session
 - avoid requiring predefined workflows or canned demos
 
 ### 5.3 Observability panel requirements
@@ -68,6 +68,8 @@ The observability panel must remain visible during the conversation and should e
 - conversation memory context used for the turn
 - final grounding summary
 - uncertainty, failure, or degraded-mode notes
+- runtime metadata identifying what produced the answer
+- a safe reasoning narrative that explains evidence selection and synthesis without exposing hidden chain-of-thought
 
 The panel must be concise enough for demo use but detailed enough to serve as evidence.
 
@@ -105,6 +107,11 @@ The live monitoring service path is the source of truth for current operational 
 ### 6.4 Session memory
 Recent conversation turns are the source of truth for pronoun resolution and contextual follow-up references in L4-style chat.
 
+The intended memory scope is session-window only:
+- stable during one browser page instance
+- lost on page refresh or new tab
+- not persisted as durable client memory
+
 ## 7. W4 Capability Coverage
 
 ### 7.1 L1 — Retrieval
@@ -122,7 +129,7 @@ When multiple documents conflict, HexaRAG must follow the project announcement r
 HexaRAG must answer grounded numeric and live-state questions using tools and managed data integrations rather than relying on document retrieval alone.
 
 ### 7.4 L4 — Memory
-HexaRAG must support recent-turn conversational continuity, including follow-up questions such as:
+HexaRAG must support recent-turn conversational continuity inside the active page session, including follow-up questions such as:
 - “Why did its costs spike?”
 - “Is it running normally right now?”
 - “Which team is responsible for it?”
@@ -138,7 +145,7 @@ L5-style investigation workflows are not required for v1 acceptance. However, th
 
 ### FR1. Chat interaction
 - The app must provide a single chat interface for freeform questioning.
-- The app must support session-based conversation continuity.
+- The app must support session-based conversation continuity within the active page session.
 - The app must return answers in a readable natural-language format.
 
 ### FR2. Bedrock Agents orchestration
@@ -176,11 +183,14 @@ The system must support the W4 tool categories through AWS-first integrations or
 - Every answer must produce a structured trace that can be shown in the right-side panel.
 - The trace must include retrieval activity, tool usage, memory context, and answer grounding.
 - The trace must be readable by both team members and trainers.
+- The trace must include explicit runtime metadata when available.
+- The trace must include a safe reasoning-oriented explanation layer for evidence selection, tool use, contradiction handling, and caveats.
 
 ### FR8. Session memory
 - The system must include recent conversation context when appropriate.
 - The system must resolve follow-up references using the active session window.
 - The observability panel should show what memory context was used for the current answer.
+- The frontend session identity must be ephemeral per page load rather than durable across refreshes.
 
 ### FR9. Graceful failure behavior
 - If a tool fails, the system must not silently guess.
@@ -284,7 +294,7 @@ The system must be able to demonstrate:
 - single-doc retrieval accuracy
 - multi-doc contradiction handling
 - exact numeric grounding from tools/data
-- session continuity across mixed retrieval/tool workflows
+- session continuity across mixed retrieval/tool workflows within one active page session
 
 ### 12.3 Test execution model
 - Local test runs must execute through Docker Compose services.
@@ -313,7 +323,7 @@ The following decisions are already fixed for HexaRAG v1:
 - local developer workflow: Docker Compose only for app runtime, seeding, and tests
 - layout: chat on the left, observability panel on the right
 - auth: no authentication in v1
-- memory model: session-window memory only
+- memory model: session-window memory only, scoped to the active page session
 - capability balance: L1-L4 all treated as first-class requirements
 - contradiction policy: prefer newer/versioned documents and explain why
 - bonus scope: include observability and scheduled KB sync

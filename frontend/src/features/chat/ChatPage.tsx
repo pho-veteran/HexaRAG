@@ -38,6 +38,28 @@ const mockPreviewTrace: TracePayload = {
   memoryWindow: ['Who owns the Notifications service?'],
   groundingNotes: ['Used the ownership document and live monitoring snapshot.'],
   uncertainty: null,
+  runtime: {
+    mode: 'stub',
+    provider: 'stub-runtime',
+    model: 'deterministic-stub',
+  },
+  reasoning: {
+    evidenceTypes: ['retrieval', 'tool', 'memory'],
+    selectedSources: ['ownership.md'],
+    toolBasis: ['monitoring_snapshot'],
+    memoryApplied: true,
+    memorySummary: 'Used 1 recent conversation item to keep the answer on topic.',
+    uncertaintyReason: null,
+    answerStrategy: 'grounded-answer',
+    runtimeLabel: 'deterministic-stub via stub-runtime',
+    caveat: null,
+    sourceSummary: 'Selected 1 source that directly shaped the answer.',
+    toolSummary: 'Used 1 tool result in the final answer.',
+    explanationSummary: 'The answer combined retrieved evidence, live tool data, and recent conversation context.',
+    narrativeFocus: 'evidence-synthesis',
+    nextStep: undefined,
+    conflictSummary: undefined,
+  },
 }
 
 const mockPreviewMessages: Array<

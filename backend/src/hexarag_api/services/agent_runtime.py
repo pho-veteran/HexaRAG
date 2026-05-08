@@ -61,6 +61,19 @@ class StubAgentRuntime:
                 ],
                 'grounding_notes': ['This is a deterministic stub response for the deploy-readiness slice.'],
                 'uncertainty': 'Live systems are not wired in this slice.',
+                'runtime': {
+                    'mode': 'stub',
+                    'provider': 'stub-runtime',
+                    'model': 'deterministic-stub',
+                },
+                'reasoning': {
+                    'evidence_types': ['retrieval', 'tool'],
+                    'selected_sources': ['architecture.md'],
+                    'tool_basis': ['monitoring_snapshot'],
+                    'memory_applied': bool(memory_window),
+                    'memory_summary': _format_preserve_context_summary(memory_window) if memory_window else None,
+                    'uncertainty_reason': 'Live systems are not wired in this slice.',
+                },
             },
         }
 
@@ -69,6 +82,7 @@ class AgentRuntimeService:
     def __init__(self, agent_id: str, agent_alias_id: str, region: str) -> None:
         self.agent_id = agent_id
         self.agent_alias_id = agent_alias_id
+        self.region = region
         self.client = boto3.client('bedrock-agent-runtime', region_name=region)
 
     def answer(self, session_id: str, message: str, memory_window: list[str]) -> dict[str, Any]:
@@ -80,24 +94,44 @@ class AgentRuntimeService:
                 inputText=_build_input_text(message, memory_window),
                 enableTrace=True,
             )
-            return _normalize_agent_response(response)
+            return _normalize_agent_response(response, self.agent_id, self.agent_alias_id, self.region, memory_window)
         except (BotoCoreError, ClientError, KeyError, TypeError, ValueError, RuntimeError) as exc:
             raise RuntimeError('Bedrock agent invocation failed.') from exc
 
 
+def _format_preserve_context_summary(memory_window: list[str]) -> str:
+    suffix = '' if len(memory_window) == 1 else 's'
+    return f'Used {len(memory_window)} prior turn{suffix} to preserve local context.'
+
+
+def _format_scoped_memory_summary(memory_window: list[str]) -> str:
+    suffix = '' if len(memory_window) == 1 else 's'
+    return f'Used {len(memory_window)} recent conversation item{suffix} to keep the answer on topic.'
+
+
 def _build_input_text(message: str, memory_window: list[str]) -> str:
+    instructions = [
+        'Use the recent conversation context only when it helps answer the latest user question.',
+        'Answer from grounded evidence, not guesswork or generic prior knowledge.',
+        'Prefer the newest valid source when retrieved sources disagree, and explain that choice in the visible trace metadata.',
+        'Keep the final answer concise and direct while preserving important caveats.',
+        'Call out uncertainty when the available evidence is incomplete or a live step fails.',
+    ]
+
     if not memory_window:
-        return message
+        return f"{' '.join(instructions)}\n\nLatest user question:\n{message}"
 
     recent_turns = '\n'.join(f'- {turn}' for turn in memory_window)
     return (
-        'Use the recent conversation context only when it helps answer the latest user question.\n\n'
+        f"{' '.join(instructions)}\n\n"
         f'Recent conversation:\n{recent_turns}\n\n'
         f'Latest user question:\n{message}'
     )
 
 
-def _normalize_agent_response(response: dict[str, Any]) -> dict[str, Any]:
+def _normalize_agent_response(
+    response: dict[str, Any], agent_id: str, agent_alias_id: str, region: str, memory_window: list[str]
+) -> dict[str, Any]:
     state: dict[str, Any] = {
         'answer_parts': [],
         'answer_fallback': None,
@@ -110,6 +144,22 @@ def _normalize_agent_response(response: dict[str, Any]) -> dict[str, Any]:
         'conflict_resolution': None,
         'action_inputs_by_trace_id': {},
         'knowledge_base_inputs_by_trace_id': {},
+        'runtime': {
+            'mode': 'aws',
+            'provider': 'bedrock-agent',
+            'region': region,
+            'agent_id': agent_id,
+            'agent_alias_id': agent_alias_id,
+            'model': None,
+        },
+        'reasoning': {
+            'evidence_types': [],
+            'selected_sources': [],
+            'tool_basis': [],
+            'memory_applied': False,
+            'memory_summary': None,
+            'uncertainty_reason': None,
+        },
     }
 
     for event in response['completion']:
@@ -132,6 +182,8 @@ def _normalize_agent_response(response: dict[str, Any]) -> dict[str, Any]:
     if not answer:
         raise RuntimeError('Bedrock agent returned an empty response.')
 
+    _finalize_reasoning(state, memory_window)
+
     return {
         'answer': answer,
         'trace': {
@@ -141,6 +193,8 @@ def _normalize_agent_response(response: dict[str, Any]) -> dict[str, Any]:
             'grounding_notes': state['grounding_notes'],
             'uncertainty': state['uncertainty'],
             'conflict_resolution': state['conflict_resolution'],
+            'runtime': state['runtime'],
+            'reasoning': state['reasoning'],
         },
     }
 
@@ -172,6 +226,13 @@ def _collect_chunk_attribution(attribution: dict[str, Any], state: dict[str, Any
                 }
                 state['citations_by_source_id'][source_id] = citation_item
                 state['citations'].append(citation_item)
+
+            selected_title = normalized['title'] or source_id
+            if selected_title not in state['reasoning']['selected_sources']:
+                state['reasoning']['selected_sources'].append(selected_title)
+
+        if source_ids and 'retrieval' not in state['reasoning']['evidence_types']:
+            state['reasoning']['evidence_types'].append('retrieval')
 
         if source_ids and span.get('start') is not None and span.get('end') is not None:
             state['inline_citations'].append(
@@ -219,6 +280,7 @@ def _collect_trace_part(trace_part: dict[str, Any], state: dict[str, Any]) -> No
     failure_trace = trace.get('failureTrace')
     if failure_trace:
         state['uncertainty'] = failure_trace.get('failureReason') or state['uncertainty']
+        state['reasoning']['uncertainty_reason'] = state['uncertainty']
 
     guardrail_trace = trace.get('guardrailTrace')
     if guardrail_trace and guardrail_trace.get('action'):
@@ -231,6 +293,11 @@ def _collect_trace_part(trace_part: dict[str, Any], state: dict[str, Any]) -> No
 
 
 def _collect_execution_trace(trace_value: dict[str, Any], state: dict[str, Any]) -> None:
+    model_invocation_input = trace_value.get('modelInvocationInput') or {}
+    foundation_model = _coerce_string(model_invocation_input.get('foundationModel'))
+    if foundation_model and not state['runtime']['model']:
+        state['runtime']['model'] = foundation_model
+
     rationale = trace_value.get('rationale') or {}
     rationale_text = _coerce_string(rationale.get('text'))
     if rationale_text:
@@ -276,6 +343,10 @@ def _collect_execution_trace(trace_value: dict[str, Any], state: dict[str, Any])
                 'output': _parse_tool_output(action_output.get('text')),
             }
         )
+        if 'tool' not in state['reasoning']['evidence_types']:
+            state['reasoning']['evidence_types'].append('tool')
+        if tool_name not in state['reasoning']['tool_basis']:
+            state['reasoning']['tool_basis'].append(tool_name)
 
     knowledge_base_output = observation.get('knowledgeBaseLookupOutput') or {}
     if knowledge_base_output:
@@ -286,11 +357,24 @@ def _collect_execution_trace(trace_value: dict[str, Any], state: dict[str, Any])
         query = _coerce_string(kb_input.get('query'))
         if query:
             _append_unique(state['grounding_notes'], f'Knowledge base query: {query}')
+        if refs and 'retrieval' not in state['reasoning']['evidence_types']:
+            state['reasoning']['evidence_types'].append('retrieval')
 
     if observation_type == 'ASK_USER':
         state['uncertainty'] = state['uncertainty'] or 'The agent needs more information to answer confidently.'
+        state['reasoning']['uncertainty_reason'] = state['uncertainty']
     if observation_type == 'REPROMPT':
         state['uncertainty'] = state['uncertainty'] or 'The agent had to reprompt because the available context was incomplete.'
+        state['reasoning']['uncertainty_reason'] = state['uncertainty']
+
+
+def _finalize_reasoning(state: dict[str, Any], memory_window: list[str]) -> None:
+    if memory_window:
+        state['reasoning']['memory_applied'] = True
+        if 'memory' not in state['reasoning']['evidence_types']:
+            state['reasoning']['evidence_types'].append('memory')
+        if not state['reasoning']['memory_summary']:
+            state['reasoning']['memory_summary'] = _format_scoped_memory_summary(memory_window)
 
 
 def _normalize_action_input(action_input: dict[str, Any]) -> dict[str, Any]:

@@ -1,5 +1,5 @@
 from hexarag_api.config import Settings
-from hexarag_api.services.agent_runtime import AgentRuntimeService
+from hexarag_api.services.agent_runtime import AgentRuntimeService, _build_input_text
 from hexarag_api.services.chat_service import ChatService
 from hexarag_api.services.session_store import InMemorySessionTable, SessionStore, build_session_table
 
@@ -263,7 +263,7 @@ def test_agent_runtime_service_normalizes_bedrock_agent_response(monkeypatch) ->
             'agentId': 'AGENT123456',
             'agentAliasId': 'ALIAS12345',
             'sessionId': 'session-1',
-            'inputText': 'Use the recent conversation context only when it helps answer the latest user question.\n\nRecent conversation:\n- Prior question\n- Prior answer\n\nLatest user question:\nHow is PaymentGW doing?',
+            'inputText': _build_input_text('How is PaymentGW doing?', ['Prior question', 'Prior answer']),
             'enableTrace': True,
         }
     ]
@@ -291,3 +291,172 @@ def test_agent_runtime_service_raises_on_stream_error(monkeypatch) -> None:
         assert str(exc) == 'Bedrock agent invocation failed.'
     else:
         raise AssertionError('Expected Bedrock runtime failure to raise RuntimeError.')
+
+
+def test_build_input_text_includes_explicit_instruction_contract() -> None:
+    prompt = _build_input_text('What is PaymentGW latency?', ['Prior question', 'Prior answer'])
+
+    assert 'Use the recent conversation context only when it helps answer the latest user question.' in prompt
+    assert 'Prefer the newest valid source when retrieved sources disagree' in prompt
+    assert 'Call out uncertainty when the available evidence is incomplete' in prompt
+    assert 'Recent conversation:' in prompt
+    assert 'Latest user question:' in prompt
+
+
+def test_agent_runtime_service_normalizes_runtime_metadata(monkeypatch) -> None:
+    fake_client = FakeAgentClient(
+        [
+            {
+                'trace': {
+                    'trace': {
+                        'orchestrationTrace': {
+                            'modelInvocationInput': {
+                                'foundationModel': 'us.anthropic.claude-3-5-haiku-20241022-v1:0',
+                                'inferenceConfiguration': {'temperature': 0.0},
+                            }
+                        }
+                    }
+                }
+            },
+            {
+                'chunk': {
+                    'bytes': b'PaymentGW latency is stable.',
+                    'attribution': {'citations': []},
+                }
+            },
+        ]
+    )
+
+    class FakeBoto3:
+        @staticmethod
+        def client(service_name: str, region_name: str):
+            assert service_name == 'bedrock-agent-runtime'
+            assert region_name == 'us-east-1'
+            return fake_client
+
+    monkeypatch.setattr('hexarag_api.services.agent_runtime.boto3', FakeBoto3)
+
+    runtime = AgentRuntimeService('AGENT123456', 'ALIAS12345', 'us-east-1')
+    response = runtime.answer('session-1', 'How is PaymentGW doing?', [])
+
+    assert response['trace']['runtime'] == {
+        'mode': 'aws',
+        'provider': 'bedrock-agent',
+        'region': 'us-east-1',
+        'agent_id': 'AGENT123456',
+        'agent_alias_id': 'ALIAS12345',
+        'model': 'us.anthropic.claude-3-5-haiku-20241022-v1:0',
+    }
+    assert response['trace']['reasoning'] == {
+        'evidence_types': [],
+        'selected_sources': [],
+        'tool_basis': [],
+        'memory_applied': False,
+        'memory_summary': None,
+        'uncertainty_reason': None,
+    }
+    assert response['answer'] == 'PaymentGW latency is stable.'
+
+
+def test_chat_service_fallback_includes_runtime_metadata() -> None:
+    service = ChatService(
+        session_store=SessionStore(InMemorySessionTable()),
+        runtime=FakeRuntime(should_fail=True),
+        recent_turn_limit=6,
+        failure_message='Could not complete the live tool step. Here is the best grounded fallback available right now.',
+    )
+
+    response = service.answer('fallback-session', 'What is NotificationSvc status?')
+
+    assert response.message.trace.runtime.mode == 'unknown'
+    assert response.message.trace.runtime.provider == 'unavailable'
+    assert response.message.trace.runtime.model is None
+    assert response.message.trace.reasoning.uncertainty_reason == 'Live monitoring data is temporarily unavailable.'
+    assert response.message.trace.reasoning.evidence_types == ['tool']
+    assert response.message.trace.reasoning.tool_basis == ['monitoring_snapshot']
+    assert response.message.trace.reasoning.selected_sources == []
+    assert response.message.trace.reasoning.memory_applied is False
+    assert response.message.trace.reasoning.memory_summary is None
+    assert response.message.trace.reasoning.answer_strategy == 'fallback'
+    assert response.message.trace.reasoning.runtime_label == 'Runtime unavailable'
+    assert response.message.trace.reasoning.caveat == 'Live monitoring data is temporarily unavailable.'
+    assert response.message.trace.reasoning.source_summary == 'No citations were available for this answer.'
+    assert response.message.trace.reasoning.tool_summary == 'Attempted monitoring_snapshot before returning the fallback.'
+    assert response.message.trace.reasoning.explanation_summary == 'The answer stayed in degraded mode because the live monitoring step failed.'
+    assert response.message.trace.reasoning.narrative_focus == 'degraded-mode'
+    assert response.message.trace.reasoning.next_step == 'Retry when live monitoring is available again.'
+    assert response.message.trace.reasoning.conflict_summary is None
+
+
+def test_chat_service_success_trace_exposes_runtime_and_reasoning() -> None:
+    class RichRuntime:
+        def answer(self, session_id: str, message: str, memory_window: list[str]) -> dict:
+            return {
+                'answer': 'PaymentGW is healthy.',
+                'trace': {
+                    'citations': [
+                        {
+                            'source_id': 'doc-paymentgw',
+                            'title': 'paymentgw.md',
+                            'excerpt': 'PaymentGW p95 is below the alert threshold.',
+                        }
+                    ],
+                    'tool_calls': [
+                        {
+                            'name': 'get_service_metrics',
+                            'status': 'success',
+                            'summary': 'get_service_metrics returned data.',
+                            'input': {},
+                            'output': {'latency_p95_ms': 182},
+                        }
+                    ],
+                    'grounding_notes': ['Used retrieved runbook and live metrics.'],
+                    'uncertainty': None,
+                    'runtime': {
+                        'mode': 'aws',
+                        'provider': 'bedrock-agent',
+                        'region': 'us-east-1',
+                        'agent_id': 'AGENT123456',
+                        'agent_alias_id': 'ALIAS12345',
+                        'model': 'us.anthropic.claude-3-5-haiku-20241022-v1:0',
+                    },
+                    'reasoning': {
+                        'evidence_types': ['retrieval', 'tool', 'memory'],
+                        'selected_sources': ['paymentgw.md'],
+                        'tool_basis': ['get_service_metrics'],
+                        'memory_applied': True,
+                        'memory_summary': 'Used the prior question to keep the follow-up scoped to PaymentGW.',
+                        'uncertainty_reason': None,
+                    },
+                },
+            }
+
+    table = InMemorySessionTable()
+    store = SessionStore(table)
+    store.append_turns('rich-session', 'Tell me about PaymentGW', 'It is a payment service.')
+    service = ChatService(
+        session_store=store,
+        runtime=RichRuntime(),
+        recent_turn_limit=6,
+        failure_message='fallback',
+    )
+
+    response = service.answer('rich-session', 'What is its latency?')
+
+    assert response.message.trace.runtime.model == 'us.anthropic.claude-3-5-haiku-20241022-v1:0'
+    assert response.message.trace.reasoning.evidence_types == ['retrieval', 'tool', 'memory']
+    assert response.message.trace.reasoning.selected_sources == ['paymentgw.md']
+    assert response.message.trace.reasoning.tool_basis == ['get_service_metrics']
+    assert response.message.trace.reasoning.memory_applied is True
+    assert response.message.trace.reasoning.memory_summary == 'Used the prior question to keep the follow-up scoped to PaymentGW.'
+    assert response.message.trace.reasoning.answer_strategy == 'grounded-answer'
+    assert response.message.trace.reasoning.runtime_label == 'us.anthropic.claude-3-5-haiku-20241022-v1:0 via bedrock-agent'
+    assert response.message.trace.reasoning.caveat is None
+    assert response.message.trace.reasoning.source_summary == 'Selected 1 source that directly shaped the answer.'
+    assert response.message.trace.reasoning.tool_summary == 'Used 1 tool result in the final answer.'
+    assert response.message.trace.reasoning.explanation_summary == 'The answer combined retrieved evidence, live tool data, and recent conversation context.'
+    assert response.message.trace.reasoning.narrative_focus == 'evidence-synthesis'
+    assert response.message.trace.reasoning.next_step is None
+    assert response.message.trace.reasoning.conflict_summary is None
+    assert response.message.trace.memory_window == ['Tell me about PaymentGW', 'It is a payment service.']
+    assert response.message.content == 'PaymentGW is healthy.'

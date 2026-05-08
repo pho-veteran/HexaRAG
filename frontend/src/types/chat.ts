@@ -26,6 +26,33 @@ export interface ConflictResolution {
   competingSources: string[]
 }
 
+export interface RuntimeTrace {
+  mode: string
+  provider: string
+  region?: string
+  agentId?: string
+  agentAliasId?: string
+  model?: string
+}
+
+export interface ReasoningTrace {
+  evidenceTypes: string[]
+  selectedSources: string[]
+  toolBasis: string[]
+  memoryApplied: boolean
+  memorySummary?: string
+  uncertaintyReason?: string
+  answerStrategy: string
+  runtimeLabel?: string
+  caveat?: string
+  sourceSummary?: string
+  toolSummary?: string
+  explanationSummary?: string
+  narrativeFocus: string
+  nextStep?: string
+  conflictSummary?: string
+}
+
 export interface TracePayload {
   citations: Citation[]
   inlineCitations: InlineCitationAnchor[]
@@ -34,12 +61,14 @@ export interface TracePayload {
   groundingNotes: string[]
   uncertainty: string | null
   conflictResolution?: ConflictResolution
+  runtime: RuntimeTrace
+  reasoning: ReasoningTrace
 }
 
 export type TracePanelTab = 'observability' | 'thinking'
 
 export interface TraceNarrativeStep {
-  id: 'sources' | 'tools' | 'memory' | 'contradiction' | 'grounding' | 'uncertainty'
+  id: 'runtime' | 'evidence' | 'sources' | 'tools' | 'memory' | 'contradiction' | 'uncertainty'
   title: string
   detail: string
 }

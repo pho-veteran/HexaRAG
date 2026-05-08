@@ -1,13 +1,8 @@
 # HexaRAG App Functionality Tracker
 
-This document tracks all expected app capabilities across frontend behavior, backend responses, tool/data integrations, observability, memory, and deployment-dependent runtime behavior.
+This document tracks the expected product behavior across the frontend, backend, data/tool integrations, trace contract, and deployment-dependent runtime behavior.
 
-It is the source of truth for:
-- what the product is expected to do
-- what is currently working, partial, mocked, unwired, or missing
-- which Bedrock-side behaviors each capability will eventually require
-
-For the AWS deployment runbook and current infrastructure caveats, see `docs/aws.md`.
+For the AWS deployment runbook and operator steps, see `docs/aws.md`.
 
 ## Status vocabulary
 - `working` — the expected capability is present and wired through the current app flow.
@@ -16,69 +11,111 @@ For the AWS deployment runbook and current infrastructure caveats, see `docs/aws
 - `unwired` — pieces exist, but the full end-to-end product behavior is not connected.
 - `missing` — the capability is expected but not currently implemented.
 
-## Chat experience
-HexaRAG already exposes the core single-screen chat surface described in the requirements: sample prompts on the left, a conversation thread, a composer, and a persistent right-side inspection console. The current UI can submit freeform prompts to the backend chat route and append both user and assistant messages to the thread. Session continuity exists at the UI level through a stable session ID, but the true quality of follow-up behavior still depends on Bedrock orchestration, retrieval, and memory behavior behind the API.
+## Current product shape
+HexaRAG exposes a single-screen chat product with:
+- quick demo questions on the left
+- a chat conversation in the center
+- an always-visible inspection console on the right
 
-## Citations and grounding
-The frontend already expects grounded answers to carry structured citations, inline citation anchors, referenced-document rows, and citation detail previews. That means the product surface for explainability is ahead of a plain-text chat app. The completeness of this experience is still partial because the UI can only show what the backend trace payload includes, and some higher-level explanation behaviors such as contradiction visibility depend on Bedrock-side reasoning and trace shaping.
+The backend responds through `POST /chat` and returns a UI-facing trace contract shaped as `ChatResponse.message.trace`.
 
-## Inspection console
-The inspection console already presents two views: an observability tab and a thinking-process tab. It can show sources, tool calls, memory context, grounding notes, uncertainty, and request-error details, which aligns closely with the expected W4 explainability surface. The remaining gaps are not the existence of the panel itself, but whether every expected backend trace field is consistently populated by the live runtime.
+## Current explainability contract
+The checked-in trace contract now includes:
+- citations
+- inline citation anchors
+- tool calls
+- `memoryWindow`
+- grounding notes
+- uncertainty
+- conflict resolution metadata
+- explicit runtime metadata
+- safe reasoning summaries for the Thinking tab
 
-## Tool-backed historical and live answers
-The product requirements expect exact numeric and live-state answers to come from structured data and monitoring tools, not from document retrieval alone. The current repo only proves part of that path end to end: the monitoring API currently exposes `/services` and `/metrics/{service_name}`, and the structured-data loader currently imports monthly costs only. This means the expected W4 tool surface is broader than the currently wired implementation.
+The backend owns this contract and normalizes Bedrock output before the frontend renders it.
 
-## Session memory and follow-up continuity
-The app is shaped for session-based chat continuity, and the frontend always sends the same session identifier within the current client flow. The trace contract also includes a `memoryWindow` field, so the UI is already prepared to show which recent turns influenced an answer. The gap is that full L4-quality continuity still depends on backend orchestration and Bedrock memory behavior rather than the UI alone.
+## Runtime/model visibility
+The product now exposes explicit runtime metadata per answer.
 
-## Degraded-mode and uncertainty behavior
-The requirements expect HexaRAG to fail visibly, avoid silent guessing, and surface uncertainty when tools or retrieval fall short. The current trace contract and inspection console both have places to show uncertainty and request-error details, so the product surface is prepared for this behavior. The remaining work is to ensure every degraded path in the live runtime produces those signals consistently rather than leaving the UI dependent on best-effort payloads.
+Backend trace payloads include:
+- `runtime.mode`
+- `runtime.provider`
+- `runtime.region`
+- `runtime.agent_id`
+- `runtime.agent_alias_id`
+- `runtime.model` when Bedrock trace data exposes the invoked foundation model
 
-## Deployment and runtime dependencies
-Some visible product behaviors depend on deployment wiring rather than frontend code alone. The frontend needs a build-time `VITE_API_BASE_URL`, the backend must be configured with the deployed browser origins, and the usability of retrieval features depends on the knowledge-base upload and ingestion sequence. These are product-affecting dependencies because the UI can render the right surfaces while the deployed environment still prevents the features from working end to end.
+This makes the producing runtime visible without changing the overall `/chat` response shape.
 
-As of now, the checked-in backend invokes Bedrock Agents through the Bedrock agent runtime API and normalizes Bedrock citations and trace events into the app's existing UI-facing contract. The remaining deployment work is no longer the runtime migration itself, but supplying real Bedrock Agent, alias, knowledge-base, and data-source identifiers and then verifying the deployed agent returns the expected trace richness.
+## Thinking process behavior
+The Thinking tab no longer duplicates the Observability inventory with generic source-checking language.
 
-| Area | Functionality | Expected behavior | User surface | Backend or tool dependency | Current state | Current implementation notes | Known gap or blocker | Bedrock agent mapping | Phase or priority |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| Chat | Freeform chat submit | Users can type arbitrary questions and send them to the chat runtime. | Chat composer and send button | `POST /chat` via `frontend/src/lib/api.ts` | working | The composer posts `session_id` and `message` to the backend API and disables submit while a request is in flight. | Real answer quality still depends on backend orchestration and deployment wiring. | prompt orchestration | Phase 1 core surface |
-| Chat | Conversation history rendering | The UI shows user and assistant turns in a readable thread. | Conversation thread in `ChatPage.tsx` | Frontend local message state | working | User messages append immediately and assistant messages append after the API response resolves. | No streamed response rendering yet. | UI-facing trace shaping | Phase 1 core surface |
-| Chat | Sample question insertion | Users can seed the composer with demo prompts for W4-style exploration. | Quick demo question pane | Frontend sample question list | working | Clicking a sample question populates the composer without sending automatically. | Samples help demos but do not validate capability depth. | n/a | Demo support |
-| Chat | Per-response trace selection | Users can inspect a specific assistant answer in the right-side console. | “Inspect response” action on assistant messages | Frontend trace selection state | working | The selected assistant message ID drives which trace appears in the panel. | Selection quality still depends on the backend returning complete trace data. | UI-facing trace shaping | Core observability |
-| Chat | Session continuity via a stable session ID | Follow-up prompts in the same UI session are associated with one conversation window. | Ongoing chat flow | Backend session-aware chat contract | partial | `useChatSession.ts` uses a fixed `SESSION_ID` and sends it on every request. | Stable session IDs exist, but true conversational continuity depends on backend memory behavior. | session memory window | L4 readiness |
-| Chat | Error-state rendering in the inspection console | Failed requests show explicit error details instead of silent failures. | Inspection console error sections | Backend error response shape | working | The panel can render the failed request, message, and detail list from the error payload. | Degraded backend paths must keep honoring the error contract. | graceful error propagation | Reliability |
-| Inspection console | Observability tab rendering | Users can inspect sources, tools, memory, grounding, and uncertainty for an answer. | Observability tab | Backend trace payload | working | `TracePanel.tsx` renders sources, tool calls, memory, grounding, and uncertainty when the trace provides them. | Completeness depends on backend trace population, not the tab itself. | UI-facing trace shaping | Core observability |
-| Inspection console | Thinking process tab rendering | Users can inspect a narrative explanation of how the answer was formed. | Thinking process tab | `buildTraceNarrative` plus backend trace payload | working | The tab converts the trace payload into a higher-level step narrative. | Narrative quality is only as good as the underlying trace fields. | trace shaping for the UI contract | Core observability |
-| Citations | Inline numbered citations in answer text | Assistant answers show inline citation anchors that users can click. | Assistant message body | Backend `inline_citations` payload | partial | The frontend supports inline citation rendering and click handling. | The behavior depends on the backend consistently returning inline citation anchors for grounded answers. | KB retrieval | L1-L2 explainability |
-| Citations | Referenced document list per assistant response | Each grounded answer lists the source documents used. | Referenced documents section under assistant answers | Backend citation payload | working | The UI renders one clickable row per citation when citations are present. | The list is only as complete as the backend trace data. | source metadata capture | Core explainability |
-| Citations | Citation detail modal | Users can inspect a citation excerpt and metadata in a focused modal. | Citation detail modal | Backend citation payload | working | Clicking a citation row or inline citation opens the modal for that source. | Source-value depends on backend excerpt and metadata quality. | source metadata capture | Core explainability |
-| Citations | Source metadata display expectations | Users can see document name, version, and recency context when available. | Citation rows and modal | Backend citation payload | partial | The trace types support `version` and `recencyNote`. | The UI expects this metadata, but the runtime must consistently provide it for conflict-aware answers. | source metadata capture | L2 contradiction handling |
-| Grounding | Grounding notes in the inspection console | Users can inspect a concise summary of how the answer was grounded. | Grounding section in observability tab | Backend `grounding_notes` payload | working | The panel renders each grounding note as a list item. | Quality depends on backend summarization and trace shaping. | grounding summary generation | Core explainability |
-| Grounding | Contradiction handling visibility | Multi-source conflicts should be surfaced and explained, including why one source was trusted. | Answer text and inspection console | Retrieval logic and trace shaping | partial | The trace contract and inspection console can now surface explicit conflict-resolution details when the backend provides `conflict_resolution`. | Live correctness still depends on the deployed runtime consistently populating contradiction metadata. | contradiction resolution policy | L2 requirement |
-| Grounding | Uncertainty or degraded-mode messaging | Users should see visible uncertainty instead of fabricated confidence. | Inspection console uncertainty section and error surfaces | Backend uncertainty and failure payloads | partial | The trace contract includes `uncertainty`, and the panel renders it when present. | The live runtime must consistently populate uncertainty for partial-evidence cases. | uncertainty signaling | Reliability |
-| Tooling | List services answers | Users can ask for available services and receive grounded results. | Chat answer plus inspection console | Monitoring API `/services` | partial | The deployed monitoring surface includes `GET /services`. | End-to-end NL answers still depend on orchestration that calls the monitoring surface appropriately. | live monitoring tool use | L3 support |
-| Tooling | Live metrics answers | Users can ask about current metrics and get grounded live values. | Chat answer plus inspection console | Monitoring API `/metrics/{service_name}` | partial | The deployed monitoring surface includes `GET /metrics/{service_name}`. | The repo does not yet prove the full W4 live-monitoring surface such as incidents and service status. | live monitoring tool use | L3 support |
-| Tooling | Historical monthly cost answers | Users can ask for exact monthly cost values grounded in structured data. | Chat answer plus inspection console | PostgreSQL plus `monthly_costs` loader | partial | The repo includes a loader for `monthly_costs.csv` only. | Coverage is narrower than the full W4 structured dataset. | structured historical data tool use | L3 support |
-| Tooling | Incident history answers | Users can ask about past incidents grounded in structured data or monitoring tools. | Chat answer plus inspection console | Incident data source | missing | W4 expects incident support, but the current repo loader and monitoring deployment do not prove this end to end. | Missing or unwired data-loading and API exposure for incidents. | structured historical data tool use | L3 gap |
-| Tooling | SLA target answers | Users can ask about SLA targets with exact grounded values. | Chat answer plus inspection console | SLA structured data source | missing | W4 includes `sla_targets.csv`, but the current loader does not import it. | Structured-data coverage is incomplete. | structured historical data tool use | L3 gap |
-| Tooling | Daily-metric historical answers | Users can ask about daily trends and historical service metrics. | Chat answer plus inspection console | Daily metrics structured data source | missing | W4 includes `daily_metrics.csv`, but the current loader does not import it. | Structured-data coverage is incomplete. | structured historical data tool use | L3 gap |
-| Tooling | Multi-source answers that mix retrieval, structured data, and live data | Users can receive one grounded answer that combines documents, historical numbers, and current state correctly. | Chat answer plus inspection console | Retrieval + structured data + live monitoring orchestration | unwired | The product requirements expect this synthesis behavior. | The repo proves parts of the data path but not a fully verified mixed-source orchestration path for every W4 case. | multi-tool orchestration | L3-L4 goal |
-| Monitoring | Monitoring API surface exposed by the deployed repo | Operators and runtime integrations can reach the documented monitoring endpoints. | Monitoring API plus tool-backed chat answers | `backend/src/monitoring_api/main.py` and Terraform routes | partial | The current repo exposes `/services` and `/metrics/{service_name}`. | W4 describes a broader live-monitoring surface including incidents and status endpoints. | live monitoring tool use | Infra/runtime gap |
-| Memory | Memory context visibility | The inspection console shows which recent turns influenced the answer. | Memory section in observability tab | Backend `memory_window` payload | working | The UI can render memory entries from the trace payload. | End-to-end value depends on whether backend orchestration populates meaningful entries. | session memory window | L4 support |
-| Memory | Follow-up reference resolution | Users can ask “it”, “that service”, or similar follow-ups and get context-aware answers. | Ongoing chat flow | Session-aware retrieval and tool routing | partial | The app is shaped for this behavior through session IDs and memory display. | The live quality of resolution still depends on backend and Bedrock memory behavior. | session memory window | L4 requirement |
-| Deployment | Frontend build-time API base URL configuration | The deployed frontend must call the deployed backend, not localhost. | Built frontend bundle | `VITE_API_BASE_URL` build-time env var | partial | `frontend/src/lib/api.ts` falls back to localhost unless `VITE_API_BASE_URL` is set. | A deployment that skips the env var produces a broken browser experience. | n/a | Deployment-critical |
-| Deployment | Deployed frontend/browser CORS compatibility | Browser requests from the deployed frontend should be accepted by the backend API. | Browser chat requests | Backend allowed origin configuration plus API Gateway HTTP API preflight configuration | working | Backend settings parse multiple allowed origins, Terraform supplies the CloudFront domain to the deployed Lambda, and the backend HTTP API now declares explicit CORS preflight settings for that CloudFront origin. | Additional custom domains would still need to be added in both the Lambda allowlist and the API Gateway CORS configuration. | n/a | Deployment-critical |
-| Deployment | KB document upload dependency | Retrieval should only be attempted after KB markdown files are uploaded to S3. | Retrieval-backed chat answers | `upload_knowledge_base.py` and KB S3 bucket | partial | The repo provides a dedicated upload script for KB markdown files. | Operators must run the upload step in the correct order for retrieval to work. | knowledge base retrieval setup | Deployment-critical |
-| Deployment | KB ingestion trigger dependency | Retrieval should only be trusted after Bedrock ingestion has been triggered and completed. | Retrieval-backed chat answers | `sync_knowledge_base.py` and Bedrock ingestion job | partial | The repo provides a sync script that starts ingestion for the configured KB and data source. | Upload must happen before sync, and the ingestion job must succeed before retrieval is ready. | knowledge base retrieval setup | Deployment-critical |
-| Deployment | Scheduled KB sync readiness | The architecture should support schedule-driven KB synchronization. | Runtime behavior and ops workflow | Terraform scheduler plus sync Lambda | partial | The repo provisions a scheduled sync path in Terraform. | Operational readiness still depends on the rest of the KB deployment path being correct. | knowledge base retrieval setup | Bonus C |
-| Deployment | AWS output discoverability for operators | Operators should be able to find the deployed endpoints and buckets without guesswork. | Deployment docs and Terraform outputs | `infra/terraform/outputs.tf` | working | Terraform outputs expose backend API URL, monitoring API URL, frontend bucket name, knowledge-base bucket name, CloudFront domain, CloudFront distribution ID, session table name, and PostgreSQL endpoint. | Bedrock resource IDs remain external inputs rather than Terraform-managed outputs in this repo, so operators still need to supply real `agent_id`, `agent_alias_id`, `knowledge_base_id`, and `knowledge_base_data_source_id`. | n/a | Ops usability |
+Instead, it explains how the answer was formed through curated steps such as:
+- Generated response
+- Synthesized evidence
+- Selected answer-shaping sources
+- Applied tool results
+- Reused recent context
+- Resolved conflicting evidence
+- Included caveats
 
-## Frontend features present but not fully wired
-- The UI already supports inline citations, citation detail inspection, per-response trace selection, and dual inspection tabs, but the completeness of those views still depends on the backend trace payload.
-- Session continuity is represented in the frontend flow through a stable session identifier and visible memory sections, but L4-quality follow-up behavior still depends on backend orchestration and Bedrock memory use.
-- The browser experience can render the full product shell even when deployment wiring such as API base URL or CORS configuration is incomplete.
+This is safe, user-visible reasoning metadata rather than hidden chain-of-thought.
 
-## Backend or tooling capabilities present but not fully surfaced
-- The monitoring deployment currently exposes only `/services` and `/metrics/{service_name}`, while the W4 package describes a broader live-monitoring surface including incidents and per-service status.
-- The structured-data loader currently imports monthly costs only, so exact numeric support is narrower than the full W4 structured dataset.
-- The repo includes dedicated scripts for KB upload and ingestion, but retrieval readiness still depends on operators running them in the correct order and on Bedrock ingestion completing successfully.
+## Session memory behavior
+Session memory is now temporary per page load.
+
+Implemented behavior:
+- the frontend generates a new `session_id` on page load
+- that `session_id` stays stable for multiple sends within the same page instance
+- refreshing the page or opening a new tab creates a different `session_id`
+- the frontend does not persist the session ID in localStorage, cookies, or the URL
+
+That means the intended memory model is temporary browser-window continuity rather than durable client memory.
+
+## Bedrock runtime instruction ownership
+The repo now owns a reusable instruction contract in `backend/src/hexarag_api/services/agent_runtime.py`.
+
+The runtime input explicitly guides Bedrock Agents to:
+- use recent conversation context only when it helps answer the latest question
+- answer from grounded evidence instead of guesswork
+- prefer the newest valid source when sources disagree
+- keep answers concise
+- surface uncertainty when evidence is incomplete or a live step fails
+
+This behavior is no longer implicit only in Bedrock-side configuration.
+
+| Area | Functionality | Expected behavior | Current state | Current implementation notes | Known gap or blocker |
+| --- | --- | --- | --- | --- | --- |
+| Chat | Freeform chat submit | Users can send arbitrary questions to the backend. | working | The composer posts `session_id` and `message` to `POST /chat`. | Real answer quality still depends on runtime wiring and data sources. |
+| Chat | Conversation history rendering | User and assistant turns render in one readable thread. | working | Messages append locally and assistant turns carry trace data for inspection. | No streamed rendering yet. |
+| Chat | Per-response inspection | Users can inspect a specific assistant reply in the console. | working | The selected assistant message ID drives the visible trace. | Value depends on the completeness of the backend trace. |
+| Chat | Temporary per-page session continuity | Follow-up questions within one page instance reuse one active session window. | working | `useChatSession.ts` generates a new session ID per mount and reuses it within that instance. | Refresh/new-tab continuity is intentionally not preserved. |
+| Chat | Error-state rendering | Failed requests show explicit request and detail information. | working | The inspection console renders the backend error payload. | Degraded backend paths must keep honoring the error contract. |
+| Inspection console | Observability tab | Users can inspect sources, tools, memory, grounding, uncertainty, and conflict resolution. | working | `TracePanel.tsx` renders the stable observability sections when the trace provides them. | Completeness still depends on backend trace population. |
+| Inspection console | Thinking tab | Users can inspect a synthesis-oriented explanation of how the answer was formed. | working | `buildTraceNarrative.ts` builds curated reasoning steps from structured trace fields. | Narrative quality depends on the runtime populating reasoning metadata well. |
+| Inspection console | Runtime/model visibility | Users can see what runtime produced an answer. | working | Runtime metadata is normalized by the backend and available in the UI contract. | `runtime.model` still depends on what Bedrock trace metadata exposes. |
+| Citations | Inline citations | Assistant answers show clickable inline citation anchors. | partial | The frontend supports inline citation rendering and interaction. | The backend must consistently return inline citation anchors for grounded answers. |
+| Citations | Referenced document list | Each grounded answer lists the cited source documents. | working | The UI renders one clickable row per citation when present. | Completeness depends on trace normalization. |
+| Citations | Citation detail modal | Users can inspect excerpt and source metadata in a focused modal. | working | Clicking a citation row or inline citation opens the modal. | Quality depends on excerpt and metadata completeness. |
+| Grounding | Conflict resolution visibility | When sources disagree, the chosen source and rationale are surfaced. | working | The trace supports `conflict_resolution`, and the observability panel renders it. | Live runtime consistency still needs ongoing verification. |
+| Grounding | Uncertainty visibility | Partial evidence or degraded paths should surface caveats instead of false certainty. | partial | The contract supports `uncertainty` and reasoning caveat summaries. | The live runtime must populate these consistently in every degraded path. |
+| Tooling | Live monitoring answers | Users can ask for current service metrics grounded in monitoring data. | partial | The monitoring API exposes `/services` and `/metrics/{service_name}` and the deployed app has verified tool-backed answers. | The live monitoring surface is still narrower than the full W4 package. |
+| Tooling | Historical structured answers | Users can ask for exact historical numeric values grounded in structured data. | partial | The repo currently loads monthly costs. | Incident, SLA, and daily metrics structured coverage is still incomplete. |
+| Tooling | Mixed-source synthesis | One answer can combine retrieval, structured data, and live tool output. | unwired | The trace contract is ready for this composition. | End-to-end mixed-source coverage is not yet fully proven across all W4 cases. |
+| Memory | Memory context visibility | Users can see which recent turns influenced the current answer. | working | The trace includes `memoryWindow`, and the observability tab renders it. | Value depends on meaningful backend session-memory shaping. |
+| Memory | Follow-up reference resolution | Users can ask pronoun-based follow-ups within one active page session. | partial | The frontend and backend session contract support this shape. | Live quality still depends on Bedrock and session-store behavior. |
+| Deployment | Frontend API URL correctness | The deployed frontend must call the deployed backend over HTTPS. | working | The production build now requires an explicit `VITE_API_BASE_URL` and no longer relies on the Docker-local default path. | Future deploys must keep that explicit build step. |
+| Deployment | Browser CORS compatibility | Browser requests from the CloudFront frontend must succeed. | working | The backend allowlist and API Gateway HTTP API CORS config were both wired for the deployed CloudFront origin. | Any new frontend domain must be added in both places. |
+| Deployment | KB upload and ingestion ordering | Retrieval should only be trusted after upload and completed ingestion. | partial | The repo includes upload and sync scripts, and deployment tracking records a completed ingestion run. | Operators must still execute the sequence correctly. |
+| Deployment | AWS output discoverability | Operators can retrieve the deployed endpoints and bucket names without guesswork. | working | Terraform outputs expose the backend, monitoring, CloudFront, bucket, session-table, and database endpoints. | Bedrock resource IDs remain external inputs, not Terraform-managed resources. |
+
+## Verified current behavior
+- The backend and frontend now agree on the expanded runtime/reasoning trace contract.
+- The Thinking tab has focused tests for richer synthesis steps.
+- The chat session hook has focused tests that prove one page instance reuses one session ID while a remount creates a new one.
+- The deployed browser flow has already been verified to reach the HTTPS backend successfully after the API base URL and CORS fixes.
+
+## Known current gaps
+- The structured-data loader still only covers monthly costs.
+- The monitoring surface is narrower than the full W4 live-data expectation.
+- Retrieval-backed deployed answers can still miss normalized citations even when retrieval succeeds.
+- Haiku 4.5 readiness for Bedrock Agents is not yet fully verified end to end in deployment.

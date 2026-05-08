@@ -3,54 +3,64 @@ import type { TraceNarrativeStep, TracePayload } from '../../types/chat'
 export function buildTraceNarrative(trace: TracePayload): TraceNarrativeStep[] {
   const steps: TraceNarrativeStep[] = []
 
-  if (trace.citations.length > 0) {
-    const titles = trace.citations.map((citation) => citation.title).join(', ')
+  if (trace.reasoning.runtimeLabel) {
+    steps.push({
+      id: 'runtime',
+      title: 'Generated response',
+      detail: `Generated with ${trace.reasoning.runtimeLabel}.`,
+    })
+  }
+
+  if (trace.reasoning.explanationSummary) {
+    steps.push({
+      id: 'evidence',
+      title: 'Synthesized evidence',
+      detail: trace.reasoning.explanationSummary,
+    })
+  }
+
+  if (trace.reasoning.sourceSummary) {
+    const sourceSuffix =
+      trace.reasoning.selectedSources.length > 0
+        ? ` Key source${trace.reasoning.selectedSources.length === 1 ? '' : 's'}: ${trace.reasoning.selectedSources.join(', ')}.`
+        : ''
+
     steps.push({
       id: 'sources',
-      title: 'Checked sources',
-      detail: `Reviewed ${trace.citations.length} retrieved source${trace.citations.length === 1 ? '' : 's'}: ${titles}.`,
+      title: 'Selected answer-shaping sources',
+      detail: `${trace.reasoning.sourceSummary}${sourceSuffix}`,
     })
   }
 
-  if (trace.toolCalls.length > 0) {
-    const names = trace.toolCalls.map((tool) => tool.name).join(', ')
+  if (trace.reasoning.toolSummary) {
     steps.push({
       id: 'tools',
-      title: 'Ran tools',
-      detail: `Used ${trace.toolCalls.length} tool call${trace.toolCalls.length === 1 ? '' : 's'} to validate the answer: ${names}.`,
+      title: 'Applied tool results',
+      detail: trace.reasoning.toolSummary,
     })
   }
 
-  if (trace.memoryWindow.length > 0) {
+  if (trace.reasoning.memoryApplied && trace.reasoning.memorySummary) {
     steps.push({
       id: 'memory',
-      title: 'Used session context',
-      detail: `Considered ${trace.memoryWindow.length} recent context item${trace.memoryWindow.length === 1 ? '' : 's'} from the conversation.`,
+      title: 'Reused recent context',
+      detail: trace.reasoning.memorySummary,
     })
   }
 
-  if (trace.conflictResolution) {
+  if (trace.reasoning.conflictSummary) {
     steps.push({
       id: 'contradiction',
-      title: 'Resolved contradiction',
-      detail: `Preferred ${trace.conflictResolution.chosenSource} because ${trace.conflictResolution.rationale}.`,
+      title: 'Resolved conflicting evidence',
+      detail: trace.reasoning.conflictSummary,
     })
   }
 
-  steps.push({
-    id: 'grounding',
-    title: 'Grounded answer',
-    detail:
-      trace.groundingNotes.length > 0
-        ? trace.groundingNotes.join(' ')
-        : 'Built the final answer from the available evidence in this turn.',
-  })
-
-  if (trace.uncertainty) {
+  if (trace.reasoning.caveat) {
     steps.push({
       id: 'uncertainty',
-      title: 'Called out uncertainty',
-      detail: trace.uncertainty,
+      title: 'Included caveats',
+      detail: trace.reasoning.caveat,
     })
   }
 
