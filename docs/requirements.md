@@ -6,7 +6,7 @@ HexaRAG is a cloud-hosted AI question-answering application for the W4 GeekBrain
 
 The product experience is a ChatGPT-like chat UI with an always-visible observability panel. The chat area presents the conversation naturally. The observability panel exposes the retrieval, tool, memory, and grounding pipeline in a concise but evidence-rich format suitable for demos, debugging, and grading.
 
-HexaRAG is AWS-native, Bedrock-first, and Terraform-deployed. It should primarily use Amazon Bedrock and Bedrock AgentCore for orchestration, retrieval/tool routing, and response generation. The frontend should be built with Vite and React. Local development, data seeding, and test execution must run through Docker Compose rather than directly on the host machine.
+HexaRAG is AWS-native, Bedrock-first, and Terraform-deployed. It should primarily use Amazon Bedrock Agents for orchestration, retrieval/tool routing, and response generation, with the backend shaping Bedrock output into the UI-facing trace contract. The frontend should be built with Vite and React. Local development, data seeding, and test execution must run through Docker Compose rather than directly on the host machine.
 
 ## 2. Goals
 
@@ -14,7 +14,7 @@ HexaRAG is AWS-native, Bedrock-first, and Terraform-deployed. It should primaril
 - Deliver a complete cloud-hosted app for the W4 project.
 - Support W4 L1-L4 question patterns reliably.
 - Make answer provenance and system behavior visible through the UI.
-- Use AWS-native services with Bedrock and Bedrock AgentCore as the primary orchestration backbone.
+- Use AWS-native services with Bedrock Agents as the primary orchestration backbone.
 - Be structured cleanly enough to feel maintainable and production-ish, not just a one-off demo script.
 
 ### 2.2 Secondary goals
@@ -141,10 +141,11 @@ L5-style investigation workflows are not required for v1 acceptance. However, th
 - The app must support session-based conversation continuity.
 - The app must return answers in a readable natural-language format.
 
-### FR2. Bedrock and AgentCore orchestration
-- The system must primarily use Amazon Bedrock and Bedrock AgentCore.
-- AgentCore should serve as the main orchestration layer for deciding retrieval, tool use, and answer flow.
+### FR2. Bedrock Agents orchestration
+- The system must primarily use Amazon Bedrock Agents.
+- Bedrock Agents should serve as the main orchestration layer for deciding retrieval, tool use, and answer flow.
 - HexaRAG must still define the tools, instructions, KB integration, session behavior, and UI-facing trace structure.
+- The backend must normalize Bedrock Agent citations, trace events, and session behavior into the product contract used by the UI.
 
 ### FR3. Retrieval support
 - The system must retrieve from the W4 knowledge base content stored in AWS.
@@ -227,13 +228,13 @@ The UI and observability output should be usable directly for presentation scree
 
 ## 10. System Architecture Requirements
 
-HexaRAG should be implemented as an AWS-native system with Bedrock/AgentCore-centered orchestration.
+HexaRAG should be implemented as an AWS-native system with Bedrock Agents-centered orchestration.
 
 ### 10.1 Required component groups
 The requirements assume these major component groups:
 - Vite + React frontend web application
 - backend application/API layer
-- Bedrock/AgentCore orchestration layer
+- Bedrock Agents orchestration layer
 - knowledge base retrieval layer
 - tool/data integration layer
 - session memory handling
@@ -243,7 +244,7 @@ The requirements assume these major component groups:
 ### 10.2 Architecture expectations
 - The frontend should be implemented as a Vite + React single-page application and present one coherent product surface.
 - The backend should shape requests and responses for the UI.
-- AgentCore should handle as much orchestration as practical.
+- Bedrock Agents should handle as much orchestration as practical, while the backend preserves the UI-facing trace contract.
 - Retrieval, tool usage, and memory context must be inspectable.
 - The system must be designed around AWS-managed services where possible.
 
@@ -253,7 +254,7 @@ The app must be designed for all-cloud deployment on AWS.
 
 ### 11.1 Platform direction
 - AWS-native hosting and service integration
-- Bedrock and Bedrock AgentCore as primary AI platform services
+- Bedrock Agents and Bedrock Knowledge Bases as primary AI platform services
 - S3-backed knowledge base source content
 - Terraform for repeatable provisioning
 
@@ -306,7 +307,7 @@ HexaRAG v1 is successful if:
 The following decisions are already fixed for HexaRAG v1:
 - product direction: AWS-native product app for W4 with built-in observability
 - deployment model: all cloud on AWS
-- orchestration approach: primarily Bedrock and Bedrock AgentCore
+- orchestration approach: primarily Bedrock Agents, with backend-side adaptation into the HexaRAG trace contract
 - primary UI: single chat page
 - frontend stack: Vite + React single-page application
 - local developer workflow: Docker Compose only for app runtime, seeding, and tests

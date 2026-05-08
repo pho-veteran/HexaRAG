@@ -119,6 +119,23 @@ export function TracePanel({
               </ul>
             </section>
 
+            {trace.conflictResolution ? (
+              <section className="trace-section">
+                <h3>Conflict resolution</h3>
+                <p>
+                  <strong>Chosen source:</strong> {trace.conflictResolution.chosenSource}
+                </p>
+                <p>{trace.conflictResolution.rationale}</p>
+                {trace.conflictResolution.competingSources.length > 0 ? (
+                  <ul className="trace-list">
+                    {trace.conflictResolution.competingSources.map((source, index) => (
+                      <li key={`${source}-${index}`}>{source}</li>
+                    ))}
+                  </ul>
+                ) : null}
+              </section>
+            ) : null}
+
             {trace.uncertainty ? (
               <section className="trace-section">
                 <h3>Uncertainty</h3>

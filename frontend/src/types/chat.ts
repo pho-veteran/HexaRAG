@@ -20,6 +20,12 @@ export interface ToolCallTrace {
   output: Record<string, unknown> | null
 }
 
+export interface ConflictResolution {
+  chosenSource: string
+  rationale: string
+  competingSources: string[]
+}
+
 export interface TracePayload {
   citations: Citation[]
   inlineCitations: InlineCitationAnchor[]
@@ -27,12 +33,13 @@ export interface TracePayload {
   memoryWindow: string[]
   groundingNotes: string[]
   uncertainty: string | null
+  conflictResolution?: ConflictResolution
 }
 
 export type TracePanelTab = 'observability' | 'thinking'
 
 export interface TraceNarrativeStep {
-  id: 'sources' | 'tools' | 'memory' | 'grounding' | 'uncertainty'
+  id: 'sources' | 'tools' | 'memory' | 'contradiction' | 'grounding' | 'uncertainty'
   title: string
   detail: string
 }

@@ -2,12 +2,11 @@ services:
   frontend:
     build: ./frontend
     working_dir: /app
+    command: sh -lc 'VITE_API_BASE_URL=http://backend:8000 npm run dev -- --host 0.0.0.0'
     volumes:
       - ./frontend:/app
     ports:
       - "5173:5173"
-    environment:
-      VITE_API_BASE_URL: http://backend:8000
     depends_on:
       - backend
 
@@ -16,13 +15,17 @@ services:
     working_dir: /app
     volumes:
       - ./backend:/app
+      - /app/.venv
       - ./W4:/workspace/W4:ro
+      - ./:/workspace/repo
     ports:
       - "8000:8000"
     environment:
       DATABASE_URL: postgresql://hexarag:hexarag@postgres:5432/hexarag
       MONITORING_BASE_URL: http://backend:8001
       W4_DATA_ROOT: /workspace/W4/data_package
+      RUNTIME_MODE: stub
+      HEXARAG_REPO_ROOT: /workspace/repo
     depends_on:
       - postgres
 

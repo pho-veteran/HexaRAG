@@ -1,4 +1,5 @@
 from fastapi import FastAPI, HTTPException
+from mangum import Mangum
 
 from monitoring_api.data import BASE_METRICS
 
@@ -16,3 +17,6 @@ def get_metrics(service_name: str) -> dict[str, int | float]:
         raise HTTPException(status_code=404, detail='Unknown service')
 
     return BASE_METRICS[service_name]
+
+
+handler = Mangum(app)

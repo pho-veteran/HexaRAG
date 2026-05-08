@@ -1,7 +1,7 @@
 import { buildTraceNarrative } from './buildTraceNarrative'
 
 describe('buildTraceNarrative', () => {
-  it('builds an ordered narrative from sources, tools, memory, grounding, and uncertainty', () => {
+  it('builds an ordered narrative from sources, tools, memory, contradiction handling, grounding, and uncertainty', () => {
     expect(
       buildTraceNarrative({
         citations: [
@@ -26,6 +26,11 @@ describe('buildTraceNarrative', () => {
         memoryWindow: ['Prior question about latency'],
         groundingNotes: ['Used the ownership document.'],
         uncertainty: 'Live monitoring was not needed for this answer.',
+        conflictResolution: {
+          chosenSource: 'api_reference_v2.md',
+          rationale: 'v2 supersedes archived v1.',
+          competingSources: ['api_reference_v1_archived.md'],
+        },
       }),
     ).toEqual([
       {
@@ -42,6 +47,11 @@ describe('buildTraceNarrative', () => {
         id: 'memory',
         title: 'Used session context',
         detail: 'Considered 1 recent context item from the conversation.',
+      },
+      {
+        id: 'contradiction',
+        title: 'Resolved contradiction',
+        detail: 'Preferred api_reference_v2.md because v2 supersedes archived v1..',
       },
       {
         id: 'grounding',
@@ -65,6 +75,7 @@ describe('buildTraceNarrative', () => {
         memoryWindow: [],
         groundingNotes: [],
         uncertainty: null,
+        conflictResolution: undefined,
       }),
     ).toEqual([
       {

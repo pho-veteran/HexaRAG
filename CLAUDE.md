@@ -17,7 +17,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Fixed product decisions
 
 - HexaRAG is an AWS-native W4 app, not a generic local demo.
-- Primary orchestration is Amazon Bedrock + Bedrock AgentCore.
+- Primary orchestration is Amazon Bedrock Agents.
 - Frontend is a Vite + React single-page app.
 - Backend is a FastAPI API shaped for the UI and deployable behind Lambda/API Gateway.
 - Local development, dependency installation, test execution, seeding, and evaluator runs must go through Docker Compose only.
@@ -32,7 +32,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - Start from `TASKS.md`, then execute the split phase plans in order.
 - Treat the split plans as ownership boundaries:
   - foundation plan: local workspace + first frontend/backend slice
-  - core runtime plan: W4 data services + AgentCore + memory + trace shaping
+  - core runtime plan: W4 data services + Bedrock runtime integration + memory + trace shaping
   - infra plan: Terraform + AWS + KB sync + `docs/aws.md`
   - testing plan: evaluator + regressions + final verification
 - Do not collapse everything back into one monolithic plan.
@@ -97,7 +97,7 @@ Run from `infra/terraform`:
 - The FastAPI layer is responsible for shaping the UI contract, not for hiding system behavior.
 - The chat endpoint is the composition point that combines:
   - recent-turn session memory
-  - Bedrock AgentCore runtime invocation
+  - Bedrock Agents runtime invocation
   - tool/data access
   - trace formatting into a UI-facing structure
 - Keep orchestration, tool adapters, memory storage, and trace formatting in separate modules so each concern stays inspectable.
@@ -135,7 +135,8 @@ Run from `infra/terraform`:
 - Keep these names aligned across code and docs:
   - `knowledge_base_id`
   - `knowledge_base_data_source_id`
-  - `agent_runtime_arn`
+  - `agent_id`
+  - `agent_alias_id`
   - trace/citation naming used by the chat contract
 
 ## When updating the architecture

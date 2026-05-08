@@ -27,6 +27,12 @@ interface ApiInlineCitationAnchor {
   source_ids: string[]
 }
 
+interface ApiConflictResolution {
+  chosen_source: string
+  rationale: string
+  competing_sources: string[]
+}
+
 interface ApiTracePayload {
   citations: ApiCitation[]
   inline_citations?: ApiInlineCitationAnchor[]
@@ -34,6 +40,7 @@ interface ApiTracePayload {
   memory_window: string[]
   grounding_notes: string[]
   uncertainty: string | null
+  conflict_resolution?: ApiConflictResolution | null
 }
 
 interface ApiChatResponse {
@@ -74,6 +81,13 @@ function mapTrace(trace: ApiTracePayload): TracePayload {
     memoryWindow: trace.memory_window,
     groundingNotes: trace.grounding_notes,
     uncertainty: trace.uncertainty,
+    conflictResolution: trace.conflict_resolution
+      ? {
+          chosenSource: trace.conflict_resolution.chosen_source,
+          rationale: trace.conflict_resolution.rationale,
+          competingSources: trace.conflict_resolution.competing_sources,
+        }
+      : undefined,
   }
 }
 

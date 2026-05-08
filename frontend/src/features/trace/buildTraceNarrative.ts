@@ -29,6 +29,14 @@ export function buildTraceNarrative(trace: TracePayload): TraceNarrativeStep[] {
     })
   }
 
+  if (trace.conflictResolution) {
+    steps.push({
+      id: 'contradiction',
+      title: 'Resolved contradiction',
+      detail: `Preferred ${trace.conflictResolution.chosenSource} because ${trace.conflictResolution.rationale}.`,
+    })
+  }
+
   steps.push({
     id: 'grounding',
     title: 'Grounded answer',

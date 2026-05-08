@@ -60,6 +60,43 @@ describe('TracePanel', () => {
     expect(screen.getByText('monitoring_snapshot: Prepared stub observability data')).toBeInTheDocument()
   })
 
+  it('renders contradiction-resolution details when the trace provides them', () => {
+    render(
+      <TracePanel
+        trace={{
+          citations: [
+            {
+              sourceId: 'doc-v2',
+              title: 'api_reference_v2.md',
+              excerpt: '1000 rpm',
+              version: 'v2',
+              recencyNote: undefined,
+            },
+          ],
+          inlineCitations: [],
+          toolCalls: [],
+          memoryWindow: [],
+          groundingNotes: ['Used the newest API document.'],
+          uncertainty: null,
+          conflictResolution: {
+            chosenSource: 'api_reference_v2.md',
+            rationale: 'v2 supersedes archived v1.',
+            competingSources: ['api_reference_v1_archived.md'],
+          },
+        }}
+        error={null}
+        traceLabel="Response 2"
+        activeTab="observability"
+        onTabChange={() => undefined}
+        onOpenMockup={() => undefined}
+      />,
+    )
+
+    expect(screen.getByText('Conflict resolution')).toBeInTheDocument()
+    expect(screen.getByText('api_reference_v2.md')).toBeInTheDocument()
+    expect(screen.getByText('v2 supersedes archived v1.')).toBeInTheDocument()
+  })
+
   it('renders curated narrative steps when the thinking-process tab is active', () => {
     render(
       <TracePanel
@@ -86,6 +123,11 @@ describe('TracePanel', () => {
           memoryWindow: ['Who owns the Notifications service?'],
           groundingNotes: ['Used live monitoring data.'],
           uncertainty: null,
+          conflictResolution: {
+            chosenSource: 'monitoring.md',
+            rationale: 'Live metrics were newer than the archived dashboard note.',
+            competingSources: ['dashboard_archive.md'],
+          },
         }}
         error={null}
         traceLabel="Response 2"
@@ -99,6 +141,7 @@ describe('TracePanel', () => {
     expect(screen.getByText('Checked sources')).toBeInTheDocument()
     expect(screen.getByText('Ran tools')).toBeInTheDocument()
     expect(screen.getByText('Used session context')).toBeInTheDocument()
+    expect(screen.getByText('Resolved contradiction')).toBeInTheDocument()
     expect(screen.getByText('Grounded answer')).toBeInTheDocument()
   })
 

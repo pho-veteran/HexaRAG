@@ -15,7 +15,11 @@ variable "database_password" {
   sensitive = true
 }
 
-variable "agent_runtime_arn" {
+variable "agent_id" {
+  type = string
+}
+
+variable "agent_alias_id" {
   type = string
 }
 

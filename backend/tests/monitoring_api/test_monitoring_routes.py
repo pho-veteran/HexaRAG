@@ -17,3 +17,9 @@ def test_services_endpoint_lists_all_six_services():
     response = client.get('/services')
     assert response.status_code == 200
     assert len(response.json()['services']) == 6
+
+
+def test_monitoring_module_exposes_lambda_handler():
+    from monitoring_api.main import handler
+
+    assert handler is not None

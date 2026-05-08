@@ -14,8 +14,14 @@ resource "aws_ssm_parameter" "knowledge_base_data_source_id" {
   value = var.knowledge_base_data_source_id
 }
 
-resource "aws_ssm_parameter" "agent_runtime_arn" {
-  name  = "/${local.name_prefix}/agent_runtime_arn"
+resource "aws_ssm_parameter" "agent_id" {
+  name  = "/${local.name_prefix}/agent_id"
   type  = "String"
-  value = var.agent_runtime_arn
+  value = var.agent_id
+}
+
+resource "aws_ssm_parameter" "agent_alias_id" {
+  name  = "/${local.name_prefix}/agent_alias_id"
+  type  = "String"
+  value = var.agent_alias_id
 }

@@ -17,3 +17,5 @@ frontend/dist/
 backend/.venv/
 .claude/worktrees/
 .superpowers/
+infra/terraform/*.zip
+.lambda-build/

@@ -10,38 +10,50 @@ data "aws_iam_policy_document" "lambda_assume_role" {
 }
 
 resource "aws_lambda_function" "backend" {
-  function_name = "${local.name_prefix}-backend"
-  role          = aws_iam_role.backend_lambda.arn
-  runtime       = "python3.12"
-  handler       = "hexarag_api.handler.handler"
-  filename      = "backend.zip"
-  timeout       = 30
+  function_name    = "${local.name_prefix}-backend"
+  role             = aws_iam_role.backend_lambda.arn
+  runtime          = "python3.12"
+  handler          = "hexarag_api.handler.handler"
+  filename         = "backend.zip"
+  source_code_hash = filebase64sha256("backend.zip")
+  timeout          = 30
 
   environment {
     variables = {
-      AWS_REGION                    = var.aws_region
+      RUNTIME_MODE                  = "aws"
+      ALLOWED_ORIGINS               = join(",", ["http://localhost:5173", "https://${aws_cloudfront_distribution.frontend.domain_name}"])
       DATABASE_URL                  = "postgresql://hexarag:${var.database_password}@${aws_db_instance.postgres.address}:5432/hexarag"
       SESSION_TABLE_NAME            = aws_dynamodb_table.sessions.name
       MONITORING_BASE_URL           = aws_apigatewayv2_stage.monitoring.invoke_url
       KNOWLEDGE_BASE_ID             = var.knowledge_base_id
       KNOWLEDGE_BASE_DATA_SOURCE_ID = var.knowledge_base_data_source_id
-      AGENT_RUNTIME_ARN             = var.agent_runtime_arn
+      AGENT_ID                      = var.agent_id
+      AGENT_ALIAS_ID                = var.agent_alias_id
     }
   }
 }
 
 resource "aws_lambda_function" "monitoring" {
-  function_name = "${local.name_prefix}-monitoring"
-  role          = aws_iam_role.monitoring_lambda.arn
-  runtime       = "python3.12"
-  handler       = "monitoring_api.main.handler"
-  filename      = "monitoring.zip"
-  timeout       = 15
+  function_name    = "${local.name_prefix}-monitoring"
+  role             = aws_iam_role.monitoring_lambda.arn
+  runtime          = "python3.12"
+  handler          = "monitoring_api.main.handler"
+  filename         = "monitoring.zip"
+  source_code_hash = filebase64sha256("monitoring.zip")
+  timeout          = 15
 }
 
 resource "aws_apigatewayv2_api" "backend" {
   name          = "${local.name_prefix}-backend-api"
   protocol_type = "HTTP"
+
+  cors_configuration {
+    allow_credentials = true
+    allow_headers     = ["content-type"]
+    allow_methods     = ["OPTIONS", "POST"]
+    allow_origins     = ["https://${aws_cloudfront_distribution.frontend.domain_name}"]
+    max_age           = 300
+  }
 }
 
 resource "aws_apigatewayv2_integration" "backend" {
