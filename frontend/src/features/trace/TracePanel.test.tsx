@@ -86,6 +86,8 @@ describe('TracePanel', () => {
     expect(screen.getByText('Inspecting Response 2.')).toBeInTheDocument()
     expect(screen.getByText('architecture.md')).toBeInTheDocument()
     expect(screen.getByText('monitoring_snapshot: Prepared stub observability data')).toBeInTheDocument()
+    expect(screen.getByText('Uncertainty')).toBeInTheDocument()
+    expect(screen.getByText('Live systems are not wired in this slice.')).toBeInTheDocument()
   })
 
   it('renders contradiction-resolution details when the trace provides them', () => {
@@ -167,6 +169,8 @@ describe('TracePanel', () => {
     expect(screen.getByText('Applied tool results')).toBeInTheDocument()
     expect(screen.getByText('Reused recent context')).toBeInTheDocument()
     expect(screen.getByText('Resolved conflicting evidence')).toBeInTheDocument()
+    expect(screen.getByText('Included caveats')).toBeInTheDocument()
+    expect(screen.getByText('Live systems are not wired in this slice.')).toBeInTheDocument()
   })
 
   it('renders failed-request details on the observability tab', () => {

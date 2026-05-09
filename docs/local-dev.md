@@ -8,6 +8,8 @@
 - `docker compose up --build frontend backend postgres`
 - `docker compose run --rm frontend npm run test -- --run`
 - `docker compose run --rm backend uv run pytest -q`
+- `docker compose run --rm backend uv run pytest tests/services/test_evaluator_inputs.py tests/services/test_audit_scoring.py -q`
+- `docker compose run --rm backend uv run pytest tests/services/test_analytics.py tests/monitoring_api/test_monitoring_routes.py -q`
 - `docker compose run --rm backend uv run python scripts/load_structured_data.py`
 
 ## Frontend API base URL rule
@@ -24,6 +26,8 @@
 - `docker compose run --rm backend uv run pytest tests/services/test_analytics.py tests/monitoring_api/test_monitoring_routes.py -q`
 - `docker compose run --rm backend uv run pytest tests/api/test_chat_contract.py tests/services/test_session_store.py tests/services/test_trace_formatter.py -q`
 - `docker compose run --rm backend uv run python scripts/load_structured_data.py --help`
+
+These focused analytics and monitoring checks now cover Q1 historical costs, SLA targets, incident summaries, daily-latency queries, and the `/status/{service_name}` plus `/incidents` monitoring endpoints used by the live audit.
 
 ## Focused runtime/trace verification
 - `docker compose run --rm backend uv run pytest tests/services/test_trace_formatter.py tests/services/test_chat_service.py tests/api/test_chat_contract.py -q`
@@ -54,5 +58,12 @@ These focused checks cover:
 - `docker compose run --rm frontend npm run test -- src/features/chat/ChatPage.test.tsx src/features/trace/TracePanel.test.tsx --run`
 - `docker compose run --rm frontend npm run build`
 - `docker compose run --rm backend uv run pytest -q`
-- `docker compose exec backend uv run python scripts/evaluate_w4.py --api-base-url http://backend:8000 --level l1 --limit 3`
+- `docker compose exec backend uv run python scripts/evaluate_w4.py --api-base-url http://backend:8000 --level l1 --mode replay --output /workspace/repo/backend/evaluate_w4_l1_replay.json --limit 3`
+- `docker compose exec backend uv run python scripts/evaluate_w4.py --api-base-url http://backend:8000 --level l5 --mode audit --output /workspace/repo/backend/evaluate_w4_l5_audit.json --limit 1`
 - `docker compose down`
+
+## Phase 5 UI audit coverage
+- `docker compose run --rm frontend npm run test -- src/features/chat/ChatPage.test.tsx src/features/trace/TracePanel.test.tsx --run`
+- `docker compose run --rm frontend npm run audit:ui`
+
+These UI audit checks now pin the contradiction, memory, and uncertainty surfaces that the live browser audit expects across the inspection console tabs.

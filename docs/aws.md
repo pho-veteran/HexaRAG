@@ -171,7 +171,7 @@ Wait for the ingestion job to complete before trusting retrieval-backed answers.
 
 ## Load structured data if needed
 
-The current repo loader imports `monthly_costs.csv` only.
+The current repo loader imports the W4 structured datasets used by the live audit, including monthly costs, incidents, SLA targets, and daily metrics.
 
 ```bash
 docker compose run --rm backend uv run python scripts/load_structured_data.py
@@ -224,10 +224,30 @@ Backend contract slice:
 docker compose run --rm backend uv run pytest tests/services/test_trace_formatter.py tests/services/test_chat_service.py tests/api/test_chat_contract.py -q
 ```
 
+Evaluator contract slice:
+
+```bash
+docker compose run --rm backend uv run pytest tests/services/test_evaluator_inputs.py tests/services/test_audit_scoring.py -q
+```
+
+Live audit harness smoke checks:
+
+```bash
+docker compose run --rm backend uv run python scripts/evaluate_w4.py --api-base-url https://<backend-api-url> --level l1 --mode replay --output /workspace/repo/backend/evaluate_w4_l1_replay.json --limit 3
+
+docker compose run --rm backend uv run python scripts/evaluate_w4.py --api-base-url https://<backend-api-url> --level l5 --mode audit --output /workspace/repo/backend/evaluate_w4_l5_audit.json --limit 1
+```
+
 Frontend trace and session slice:
 
 ```bash
 docker compose run --rm frontend npm run test -- src/features/chat/ChatPage.test.tsx src/features/trace/TracePanel.test.tsx src/features/trace/buildTraceNarrative.test.ts --run
+```
+
+Data and monitoring audit slice:
+
+```bash
+docker compose run --rm backend uv run pytest tests/services/test_analytics.py tests/monitoring_api/test_monitoring_routes.py -q
 ```
 
 ## Current deployed verification state
@@ -255,8 +275,6 @@ In short: Haiku 4.5 appears available in Bedrock, but HexaRAG should not claim B
 - Bedrock resource creation is still external to Terraform in this repo.
 - The browser path depends on both Lambda-side allowed origins and API Gateway HTTP API CORS configuration.
 - If you replace the CloudFront distribution or add a custom frontend domain, update both the backend allowlist and the API Gateway CORS config in Terraform.
-- The structured-data loader still covers only monthly costs.
-- Monitoring routes still cover `/services` and `/metrics/{service_name}` only.
 - Retrieval-backed deployed responses can still miss normalized citations even when retrieval succeeds.
 
 ## Troubleshooting

@@ -492,22 +492,28 @@ describe('ChatPage', () => {
               ],
               memory_window: ['Who owns the Notifications service?'],
               grounding_notes: ['Used live monitoring data.'],
+              conflict_resolution: {
+                chosen_source: 'monitoring.md',
+                rationale: 'The live monitoring document is newer than the archived dashboard export.',
+                competing_sources: ['dashboard_archive.md'],
+              },
+              uncertainty: 'Live metrics can drift after this snapshot.',
               reasoning: {
                 evidence_types: ['retrieval', 'tool', 'memory'],
                 selected_sources: ['monitoring.md'],
                 tool_basis: ['monitoring_snapshot'],
                 memory_applied: true,
                 memory_summary: 'Used 1 recent conversation item to keep the answer on topic.',
-                uncertainty_reason: null,
+                uncertainty_reason: 'Live metrics can drift after this snapshot.',
                 answer_strategy: 'grounded-answer',
                 runtime_label: 'deterministic-stub via stub-runtime',
-                caveat: null,
+                caveat: 'Live metrics can drift after this snapshot.',
                 source_summary: 'Selected 1 source that directly shaped the answer.',
                 tool_summary: 'Used 1 tool result in the final answer.',
                 explanation_summary: 'The answer combined retrieved evidence, live tool data, and recent conversation context.',
                 narrative_focus: 'evidence-synthesis',
                 next_step: null,
-                conflict_summary: null,
+                conflict_summary: 'Preferred monitoring.md because the live monitoring document is newer than the archived dashboard export.',
               },
             }),
           },
@@ -534,6 +540,14 @@ describe('ChatPage', () => {
     expect(screen.getByText('Selected answer-shaping sources')).toBeInTheDocument()
     expect(screen.getByText('Applied tool results')).toBeInTheDocument()
     expect(screen.getByText('Reused recent context')).toBeInTheDocument()
+    expect(screen.getByText('Resolved conflicting evidence')).toBeInTheDocument()
+    expect(screen.getByText('Included caveats')).toBeInTheDocument()
+    expect(
+      screen.getByText(
+        'Preferred monitoring.md because the live monitoring document is newer than the archived dashboard export.',
+      ),
+    ).toBeInTheDocument()
+    expect(screen.getByText('Live metrics can drift after this snapshot.')).toBeInTheDocument()
 
     const responseOne = screen.getByRole('article', { name: 'Response 1' })
     await user.click(within(responseOne).getByRole('button', { name: 'Inspect response' }))

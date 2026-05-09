@@ -5,13 +5,19 @@ from typing import Any
 import httpx
 
 from hexarag_api.config import Settings
+from hexarag_api.services.audit_scoring import build_unscored_result, score_single_turn_result
 
 LEVEL_FILENAMES = {
     'l1': 'L1_questions.json',
     'l2': 'L2_questions.json',
     'l3': 'L3_questions.json',
     'l4': 'L4_conversation_scripts.json',
+    'l5': 'L5_investigation_prompts.json',
 }
+
+_SINGLE_TURN_LEVELS = {'l1', 'l2', 'l3'}
+_CONVERSATION_LEVELS = {'l4'}
+_INVESTIGATION_LEVELS = {'l5'}
 
 
 def default_questions_root() -> Path:
@@ -46,6 +52,29 @@ def evaluate_prompt(client: httpx.Client, api_base_url: str, session_id: str, pr
     return response.json()
 
 
+def _score_single_turn(level: str, response: dict[str, Any], expected_answer: str) -> dict[str, object]:
+    if level.lower() == 'l1':
+        return score_single_turn_result(
+            level=level,
+            answer=response['message']['content'],
+            trace=response['message']['trace'],
+            expected_answer=expected_answer,
+        )
+    return build_unscored_result()
+
+
+def _score_conversation_turn(level: str, response: dict[str, Any], expected_answer: str) -> dict[str, object]:
+    return _score_single_turn(level, response, expected_answer)
+
+
+def _score_conversation_result() -> dict[str, object]:
+    return build_unscored_result()
+
+
+def _score_investigation_result() -> dict[str, object]:
+    return build_unscored_result()
+
+
 def evaluate_single_turn_level(
     client: httpx.Client,
     api_base_url: str,
@@ -65,6 +94,7 @@ def evaluate_single_turn_level(
                 'session_id': session_id,
                 'assistant_answer': response['message']['content'],
                 'trace': response['message']['trace'],
+                **_score_single_turn(level, response, item['expected_answer']),
             }
         )
     return results
@@ -90,6 +120,7 @@ def evaluate_conversation_level(
                     'expected_answer': turn['expected_answer'],
                     'assistant_answer': response['message']['content'],
                     'trace': response['message']['trace'],
+                    **_score_conversation_turn(level, response, turn['expected_answer']),
                 }
             )
         results.append(
@@ -98,6 +129,34 @@ def evaluate_conversation_level(
                 'title': conversation['title'],
                 'session_id': session_id,
                 'turns': turn_results,
+                **_score_conversation_result(),
+            }
+        )
+    return results
+
+
+def evaluate_investigation_level(
+    client: httpx.Client,
+    api_base_url: str,
+    level: str,
+    payload: dict[str, Any],
+    limit: int | None,
+) -> list[dict[str, Any]]:
+    results = []
+    for item in apply_limit(payload['investigations'], limit):
+        session_id = f'eval-{level}-{item["id"].lower()}'
+        response = evaluate_prompt(client, api_base_url, session_id, item['prompt'])
+        results.append(
+            {
+                'id': item['id'],
+                'prompt': item['prompt'],
+                'expected_steps': item.get('expected_steps', []),
+                'expected_findings': item.get('expected_findings'),
+                'data_sources_needed': item.get('data_sources_needed', []),
+                'session_id': session_id,
+                'assistant_answer': response['message']['content'],
+                'trace': response['message']['trace'],
+                **_score_investigation_result(),
             }
         )
     return results
@@ -108,18 +167,30 @@ def run_evaluation(
     level: str,
     questions_root: Path | None = None,
     limit: int | None = None,
+    client: httpx.Client | None = None,
 ) -> dict[str, Any]:
-    question_file = resolve_question_file(level, questions_root)
+    normalized_level = level.lower()
+    question_file = resolve_question_file(normalized_level, questions_root)
     payload = load_level_questions(question_file)
 
-    with httpx.Client(timeout=30.0) as client:
-        if level == 'l4':
-            results = evaluate_conversation_level(client, api_base_url, level, payload, limit)
+    if client is not None:
+        if normalized_level in _CONVERSATION_LEVELS:
+            results = evaluate_conversation_level(client, api_base_url, normalized_level, payload, limit)
+        elif normalized_level in _INVESTIGATION_LEVELS:
+            results = evaluate_investigation_level(client, api_base_url, normalized_level, payload, limit)
         else:
-            results = evaluate_single_turn_level(client, api_base_url, level, payload, limit)
+            results = evaluate_single_turn_level(client, api_base_url, normalized_level, payload, limit)
+    else:
+        with httpx.Client(timeout=30.0) as managed_client:
+            if normalized_level in _CONVERSATION_LEVELS:
+                results = evaluate_conversation_level(managed_client, api_base_url, normalized_level, payload, limit)
+            elif normalized_level in _INVESTIGATION_LEVELS:
+                results = evaluate_investigation_level(managed_client, api_base_url, normalized_level, payload, limit)
+            else:
+                results = evaluate_single_turn_level(managed_client, api_base_url, normalized_level, payload, limit)
 
     return {
-        'level': level,
+        'level': normalized_level,
         'description': payload.get('description'),
         'question_file': str(question_file),
         'result_count': len(results),
